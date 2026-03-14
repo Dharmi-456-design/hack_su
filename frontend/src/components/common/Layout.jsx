@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Cpu, BarChart3, Package, Users, Bell, BellOff,
   LineChart, FileText, ShieldCheck, Wrench, LogOut,
   ChevronLeft, ChevronRight, Zap, Factory, Volume2, VolumeX,
-  Bot, DollarSign, Activity
+  Bot, DollarSign, Activity, Shield
 } from 'lucide-react';
 
 const T = {
@@ -33,8 +33,9 @@ const NAV_ITEMS = [
   { path: '/production',   icon: BarChart3,       label: 'Production' },
   { path: '/inventory',    icon: Package,         label: 'Inventory' },
   { path: '/workers',      icon: Users,           label: 'Workforce' },
+  { path: '/safety',       icon: Shield,          label: 'Safety Controls' },
   { path: '/alerts',       icon: Bell,            label: 'Smart Alerts' },
-  { path: '/analytics',    icon: LineChart,        label: 'Analytics' },
+  { path: '/analytics',    icon: LineChart,       label: 'Analytics' },
   { path: '/energy',       icon: Zap,             label: 'Energy Monitor' },
   { path: '/cost-revenue', icon: DollarSign,      label: 'Cost & Revenue' },
   { path: '/chatbot',      icon: Bot,             label: 'AI Assistant' },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ANALYTICS, MACHINES, ALERTS, PRODUCTION_DATA, MONTHLY_PERFORMANCE, DEPARTMENT_STATS } from '../data/dummyData';
+import { ANALYTICS, MACHINES, ALERTS, PRODUCTION_DATA, MONTHLY_PERFORMANCE, DEPARTMENT_STATS, SAFETY_INCIDENTS, WORKERS } from '../data/dummyData';
 import { useLive } from '../context/LiveDataContext';
 import { useLivestreamData } from '../hooks/useLivestreamData';
 import LiveChartIndicator from '../components/common/LiveChartIndicator';
@@ -8,7 +8,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid
 } from 'recharts';
-import { Cpu, Users, AlertTriangle, Factory, ArrowUpRight, ArrowDownRight, Zap } from 'lucide-react';
+import { Cpu, Users, AlertTriangle, Factory, ArrowUpRight, ArrowDownRight, Zap, Shield, ShieldAlert, Activity } from 'lucide-react';
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────
 const T = {
@@ -229,6 +229,10 @@ export default function DashboardPage() {
     return () => clearInterval(t);
   }, []);
 
+  const avgSafetyScore = useMemo(() => {
+    return Math.round(WORKERS.reduce((acc, w) => acc + w.safetyScore, 0) / WORKERS.length);
+  }, []);
+
   const unread = alerts.filter(a => !a.read);
   const axisStyle = { fill: T.dim, fontSize: 11, fontFamily: T.fontBody };
 
@@ -292,16 +296,19 @@ export default function DashboardPage() {
       </div>
 
       {/* ── KPI Metric Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
         <MetricCard title="Total Machines"  value={machines.length}
           subtitle={`${machines.filter(m => m.status === 'Running').length} running · ${machines.filter(m => m.status === 'Maintenance').length} maintenance`}
           icon={Cpu} color="accent" trend={0} delay={0} />
+        <MetricCard title="Safety Score"    value={`${avgSafetyScore}/100`}
+          subtitle={`Average across ${WORKERS.length} workers`}
+          icon={Shield} color="green" trend={0.5} delay={45} />
         <MetricCard title="Today's Output"   value={production.today}
           subtitle={`Target: ${production.target} units`}
-          icon={Factory} color="green" trend={-2.3} delay={60} />
+          icon={Factory} color="green" trend={-2.3} delay={90} />
         <MetricCard title="Efficiency %"   value={machines.length > 0 ? Math.round(machines.reduce((a,b)=>a+b.efficiency,0)/machines.length) : 0}
           subtitle="Overall Equipment Effectiveness"
-          icon={Users} color="amber" trend={1.2} delay={120} />
+          icon={Users} color="amber" trend={1.2} delay={135} />
         <MetricCard title="Active Alerts"    value={unread.length}
           subtitle={"Real-time system alerts"}
           icon={AlertTriangle} color="red" delay={180} />
@@ -410,6 +417,63 @@ export default function DashboardPage() {
                 </div>
               );
             })}
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* ── Safety Monitoring ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <SectionCard>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <SectionTitle>Safety Risk Watch</SectionTitle>
+              <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -8 }}>AI-Predicted Machine Risk Alerts</div>
+            </div>
+            <ViewAll to="/safety" />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {machines.filter(m => m.temperature > 90 || m.vibration > 2).slice(0, 3).map(m => (
+              <div key={m.id} style={{
+                background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12
+              }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldAlert size={16} color={T.red} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 600, color: '#fff' }}>{m.name} Risk Alert</div>
+                  <div style={{ fontFamily: T.fontBody, fontSize: 11, color: T.dim }}>High {m.temperature > 90 ? 'Temperature' : 'Vibration'} detected</div>
+                </div>
+                <div style={{ fontFamily: T.fontHead, fontSize: 10, fontWeight: 700, color: T.red }}>HIGH RISK</div>
+              </div>
+            ))}
+            {machines.filter(m => m.temperature > 90 || m.vibration > 2).length === 0 && (
+              <div style={{ padding: 20, textAlign: 'center', border: `1px dashed ${T.border}`, borderRadius: 12, color: T.dim, fontSize: 12 }}>
+                No immediate machine safety risks detected.
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <SectionTitle>Recent Safety Incidents</SectionTitle>
+              <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -8 }}>Historical Safety Log Summary</div>
+            </div>
+            <ViewAll to="/safety" />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {SAFETY_INCIDENTS.slice(0, 3).map(incident => (
+              <div key={incident.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `1px solid ${T.border}22` }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: incident.severity === 'high' ? T.red : T.amber }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: T.fontBody, fontSize: 12, fontWeight: 600, color: T.text }}>{incident.type} - {incident.worker}</div>
+                  <div style={{ fontFamily: T.fontBody, fontSize: 10, color: T.dim }}>{incident.date} • {incident.description.substring(0, 45)}...</div>
+                </div>
+                <div style={{ fontSize: 9, color: T.dim, textTransform: 'uppercase', fontWeight: 600 }}>{incident.severity}</div>
+              </div>
+            ))}
           </div>
         </SectionCard>
       </div>

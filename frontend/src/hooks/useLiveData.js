@@ -171,6 +171,13 @@ export function useLiveData() {
     } catch (e) {}
   }, []);
 
+  const removeAlert = useCallback(async (id) => {
+    try {
+      await api.delete(`/alerts/${id}`);
+    } catch(e) {}
+    setAlerts(prev => prev.filter(a => a._id !== id && a.id !== id));
+  }, []);
+
   return { 
     machines, 
     alerts, 
@@ -179,6 +186,7 @@ export function useLiveData() {
     lastUpdate, 
     markAlertRead, 
     markAllRead, 
+    removeAlert,
     unreadCount: alerts.filter(a => !a.read).length, 
     soundEnabled, 
     setSoundEnabled, 

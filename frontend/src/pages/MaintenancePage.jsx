@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { MACHINE_HISTORY } from '../data/dummyData';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Wrench, Brain, Clock, CheckCircle } from 'lucide-react';
+import { Wrench, Brain, Clock, CheckCircle, CalendarPlus, ClipboardList, X } from 'lucide-react';
+
+const LS_KEY = 'factory_maintenance_schedule';
+function loadSchedule() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+  catch { return []; }
+}
+
+const PRIORITIES = [
+  { value: 'Low',      color: '#22C55E', bg: 'rgba(34,197,94,0.1)',    border: 'rgba(34,197,94,0.4)'    },
+  { value: 'Medium',   color: '#F59E0B', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.4)'   },
+  { value: 'High',     color: '#EF4444', bg: 'rgba(239,68,68,0.1)',    border: 'rgba(239,68,68,0.4)'    },
+  { value: 'Critical', color: '#FF0055', bg: 'rgba(255,0,85,0.08)',    border: 'rgba(255,0,85,0.5)'     },
+];
+const statusColors = { Scheduled: '#00E5FF', 'In Progress': '#F59E0B', Completed: '#22C55E', Cancelled: '#EF4444' };
 
 function predictFailure(machine) {
   let score = 0;
@@ -48,7 +63,17 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function MaintenancePage() {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState(null);
+  const [scheduleList, setScheduleList] = useState(loadSchedule);
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMachine, setModalMachine] = useState(null);
+  const [formData, setFormData] = useState({
+    technician: '', date: '', time: '', type: 'Preventive', cost: '', duration: '', priority: 'Medium', notes: ''
+  });
+
   const { data: machines, loading } = useApi('/machines');
 
   const machinesWithRisk = machines.map(m => ({ ...m, riskScore: predictFailure(m) }))
@@ -56,6 +81,38 @@ export default function MaintenancePage() {
 
   const highRisk = machinesWithRisk.filter(m => m.riskScore >= 70);
   const medRisk  = machinesWithRisk.filter(m => m.riskScore >= 40 && m.riskScore < 70);
+
+  function handleSchedule(e, machine) {
+    e.stopPropagation();
+    setModalMachine(machine);
+    setIsModalOpen(true);
+  }
+
+  function handleScheduleSubmit(e) {
+    e.preventDefault();
+    const newEntry = {
+      id: Date.now().toString(),
+      machineId: modalMachine.machineId || modalMachine.id || modalMachine._id,
+      machineName: modalMachine.name,
+      technician: formData.technician,
+      scheduledDateDisplay: formData.date,
+      scheduledTimeDisplay: formData.time,
+      maintenanceType: formData.type,
+      estimatedCost: formData.cost,
+      duration: formData.duration,
+      priority: formData.priority,
+      status: 'Scheduled',
+      notes: formData.notes
+    };
+    
+    const updated = [newEntry, ...scheduleList];
+    setScheduleList(updated);
+    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+    
+    setIsModalOpen(false);
+    setModalMachine(null);
+    setFormData({ technician: '', date: '', time: '', type: 'Preventive', cost: '', duration: '', priority: 'Medium', notes: '' });
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -107,16 +164,28 @@ export default function MaintenancePage() {
         </div>
       )}
 
-      {/* Risk cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Risk cards — key fix: position:relative + isolate on the grid, z-index managed per card */}
+      <div className="machine-card-container">
         {machinesWithRisk.map((m, i) => {
           const risk = getRiskLevel(m.riskScore);
           const temp = m.sensors?.temperature ?? m.temperature ?? 0;
           const vib  = m.sensors?.vibration  ?? m.vibration  ?? 0;
           const eff  = m.efficiency ?? 0;
+          const isSelected = selected?._id === m._id;
           return (
-            <div key={m._id || m.id} className={`factory-card ${risk.bg} border ${risk.border} cursor-pointer hover:scale-105 transition-all duration-200 animate-fade-up`}
-              style={{ animationDelay:`${i * 50}ms` }} onClick={() => setSelected(selected?._id === m._id ? null : m)}>
+            <div
+              key={m._id || m.id}
+              className={`${risk.bg} border ${risk.border} rounded-xl p-5 cursor-pointer machine-card`}
+              style={{
+                zIndex: isSelected ? 10 : 1,
+                animationDelay: `${i * 50}ms`,
+                background: undefined,
+              }}
+              onClick={() => setSelected(isSelected ? null : m)}
+            >
+              {/* Top shimmer line */}
+              <div style={{ position:'absolute', top:0, left:0, right:0, height:1, background:'linear-gradient(90deg,transparent,rgba(0,229,255,0.3),transparent)' }} />
+
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="font-medium text-factory-text">{m.name}</div>
@@ -167,7 +236,7 @@ export default function MaintenancePage() {
                 </div>
               )}
 
-              {selected?._id === m._id && (
+              {isSelected && (
                 <div className="mt-4 pt-4 border-t border-factory-border" onClick={e => e.stopPropagation()}>
                   <div className="flex justify-between items-center mb-3">
                     <div className="section-title mb-0">24-HOUR SENSOR HISTORY</div>
@@ -179,19 +248,23 @@ export default function MaintenancePage() {
                   <ResponsiveContainer width="100%" height={150}>
                     <AreaChart data={MACHINE_HISTORY} margin={{ top:5, right:10, left:-20, bottom:0 }}>
                       <defs>
-                        <linearGradient id="gTemp" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#EF4444" stopOpacity={0.25} /><stop offset="95%" stopColor="#EF4444" stopOpacity={0} /></linearGradient>
-                        <linearGradient id="gVib"  x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22C55E" stopOpacity={0.25} /><stop offset="95%" stopColor="#22C55E" stopOpacity={0} /></linearGradient>
+                        <linearGradient id={`gTemp-${m._id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#EF4444" stopOpacity={0.25} /><stop offset="95%" stopColor="#EF4444" stopOpacity={0} /></linearGradient>
+                        <linearGradient id={`gVib-${m._id}`}  x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22C55E" stopOpacity={0.25} /><stop offset="95%" stopColor="#22C55E" stopOpacity={0} /></linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                       <XAxis dataKey="hour" tick={{ fill:'#64748b', fontSize:10 }} tickLine={false} axisLine={false} interval={4} dy={5} />
                       <YAxis tick={{ fill:'#64748b', fontSize:10 }} tickLine={false} axisLine={false} />
                       <Tooltip content={<CustomTooltip />} cursor={{ stroke:'#00E5FF', strokeWidth:1, strokeDasharray:'4 4' }} />
-                      <Area type="monotone" dataKey="temperature" stroke="#EF4444" strokeWidth={2} fill="url(#gTemp)" name="Temperature" dot={false} activeDot={{ r:5, fill:'#EF4444', stroke:'#020617', strokeWidth:2 }} />
-                      <Area type="monotone" dataKey="vibration"   stroke="#22C55E" strokeWidth={2} fill="url(#gVib)"  name="Vibration"   dot={false} activeDot={{ r:5, fill:'#22C55E', stroke:'#020617', strokeWidth:2 }} />
+                      <Area type="monotone" dataKey="temperature" stroke="#EF4444" strokeWidth={2} fill={`url(#gTemp-${m._id})`} name="Temperature" dot={false} activeDot={{ r:5, fill:'#EF4444', stroke:'#020617', strokeWidth:2 }} />
+                      <Area type="monotone" dataKey="vibration"   stroke="#22C55E" strokeWidth={2} fill={`url(#gVib-${m._id})`}  name="Vibration"   dot={false} activeDot={{ r:5, fill:'#22C55E', stroke:'#020617', strokeWidth:2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
-                  <button className="mt-4 btn-primary w-full text-sm flex items-center justify-center gap-2 hover:-translate-y-1 transition-transform" style={{ boxShadow:'0 4px 15px rgba(0,229,255,0.2)' }}>
-                    <CheckCircle size={14} /> SCHEDULE MAINTENANCE
+                  <button
+                    className="mt-4 btn-primary w-full text-sm flex items-center justify-center gap-2"
+                    onClick={(e) => handleSchedule(e, m)}
+                    style={{ boxShadow:'0 4px 15px rgba(0,229,255,0.2)' }}
+                  >
+                    <CalendarPlus size={14} /> SCHEDULE MAINTENANCE
                   </button>
                 </div>
               )}
@@ -199,6 +272,142 @@ export default function MaintenancePage() {
           );
         })}
       </div>
+
+      {/* Maintenance Schedule Summary */}
+      {scheduleList.length > 0 && (
+        <div className="factory-card animate-fade-up" style={{ animationDelay: '200ms' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <ClipboardList size={18} className="text-factory-accent" />
+              <div className="section-title text-factory-accent">UPCOMING MAINTENANCE SCHEDULE</div>
+            </div>
+            <div className="font-mono text-xs text-factory-dim">{scheduleList.length} RECORD{scheduleList.length !== 1 ? 'S' : ''}</div>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="saas-table">
+              <thead>
+                <tr>
+                  {['Machine', 'Date', 'Time', 'Technician', 'Type', 'Cost', 'Priority', 'Status'].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {scheduleList.slice(0, 8).map((r, i) => {
+                  const pDef = PRIORITIES.find(p => p.value === r.priority);
+                  return (
+                    <tr key={r.id}>
+                      <td className="whitespace-nowrap">
+                        <div className="font-semibold text-factory-text">{r.machineName}</div>
+                        <div className="text-[10px] text-factory-accent font-mono">{r.machineId}</div>
+                      </td>
+                      <td className="text-factory-dim font-mono text-xs whitespace-nowrap">{r.scheduledDateDisplay}</td>
+                      <td className="text-factory-dim font-mono text-xs whitespace-nowrap">{r.scheduledTimeDisplay}</td>
+                      <td className="text-factory-text text-sm whitespace-nowrap">{r.technician}</td>
+                      <td className="whitespace-nowrap">
+                        <span className="bg-factory-accent/10 border border-factory-accent/20 rounded px-2 py-0.5 text-factory-accent text-xs font-mono">{r.maintenanceType}</span>
+                      </td>
+                      <td className="text-factory-green font-mono text-sm font-bold whitespace-nowrap">₹{Number(r.estimatedCost).toLocaleString('en-IN')}</td>
+                      <td className="whitespace-nowrap">
+                        <span className="rounded px-2 py-0.5 text-xs font-mono font-bold" style={{ background: pDef?.bg, border: `1px solid ${pDef?.border}`, color: pDef?.color }}>{r.priority}</span>
+                      </td>
+                      <td className="whitespace-nowrap">
+                        <span className="rounded px-2 py-0.5 text-xs font-mono" style={{ background: `${statusColors[r.status]}15`, border: `1px solid ${statusColors[r.status]}44`, color: statusColors[r.status] }}>{r.status}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {scheduleList.length > 8 && (
+            <div style={{ textAlign:'center', marginTop:12, color:'#64748b', fontSize:12, fontFamily:'monospace' }}>
+              + {scheduleList.length - 8} more records — stored in local schedule history
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Schedule Maintenance Modal Form */}
+      {isModalOpen && modalMachine && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B1420]/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="factory-card glow-accent w-full max-w-2xl flex flex-col max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6 border-b border-factory-border pb-4">
+              <div className="flex items-center gap-3">
+                <Wrench className="text-factory-accent" />
+                <h3 className="text-xl font-display font-bold text-white tracking-widest">SCHEDULE MAINTENANCE</h3>
+              </div>
+              <button className="text-factory-dim hover:text-white transition-colors" onClick={() => setIsModalOpen(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleScheduleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">MACHINE</label>
+                  <input type="text" className="input-field bg-[#111e32] opacity-80" value={`${modalMachine.name} (${modalMachine.machineId || modalMachine.id || modalMachine._id})`} readOnly />
+                </div>
+                
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">TECHNICIAN NAME</label>
+                  <input type="text" className="input-field" required value={formData.technician} onChange={e => setFormData(p => ({ ...p, technician: e.target.value }))} placeholder="e.g. Rahul Sharma" />
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">MAINTENANCE TYPE</label>
+                  <select className="input-field" required value={formData.type} onChange={e => setFormData(p => ({ ...p, type: e.target.value }))}>
+                    <option>Preventive</option>
+                    <option>Emergency</option>
+                    <option>Inspection</option>
+                    <option>Repair</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">DATE</label>
+                  <input type="date" className="input-field" required value={formData.date} onChange={e => setFormData(p => ({ ...p, date: e.target.value }))} />
+                </div>
+                
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">TIME</label>
+                  <input type="time" className="input-field" required value={formData.time} onChange={e => setFormData(p => ({ ...p, time: e.target.value }))} />
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">ESTIMATED COST (₹)</label>
+                  <input type="number" className="input-field" required min="0" value={formData.cost} onChange={e => setFormData(p => ({ ...p, cost: e.target.value }))} placeholder="e.g. 5000" />
+                </div>
+                
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">DURATION (HOURS)</label>
+                  <input type="number" className="input-field" required min="1" value={formData.duration} onChange={e => setFormData(p => ({ ...p, duration: e.target.value }))} placeholder="e.g. 3" />
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">PRIORITY</label>
+                  <select className="input-field" required value={formData.priority} onChange={e => setFormData(p => ({ ...p, priority: e.target.value }))}>
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                    <option>Critical</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-mono text-factory-dim mb-1">NOTES</label>
+                  <textarea className="input-field min-h-[80px]" value={formData.notes} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} placeholder="Provide details..."></textarea>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-factory-border">
+                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>CANCEL</button>
+                <button type="submit" className="btn-primary flex items-center gap-2 glow-accent"><CheckCircle size={16} /> CONFIRM SCHEDULE</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

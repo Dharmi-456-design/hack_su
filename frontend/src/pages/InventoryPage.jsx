@@ -145,11 +145,11 @@ export default function InventoryPage() {
           <div className="text-center py-12 text-factory-dim font-mono">No inventory items. Click ADD ITEM to get started.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="saas-table">
               <thead>
-                <tr className="border-b border-factory-border">
+                <tr>
                   {['ID','Name','Category','Stock','Min/Max','Level','Unit Cost','Value','Supplier','Actions','Status'].map(h => (
-                    <th key={h} className="text-left py-3 px-2 font-mono text-xs text-factory-dim tracking-wider whitespace-nowrap">{h}</th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -158,13 +158,13 @@ export default function InventoryPage() {
                   const s   = getStockStatus(item);
                   const pct = Math.min(100, (item.stock / (item.maxStock || 1)) * 100);
                   return (
-                    <tr key={item._id || item.itemId} className="border-b border-factory-border/30 hover:bg-factory-border/20 transition-colors">
-                      <td className="py-3 px-2 font-mono text-xs text-factory-dim">{item.itemId}</td>
-                      <td className="py-3 px-2 font-medium text-factory-text whitespace-nowrap">{item.name}</td>
-                      <td className="py-3 px-2"><span className="font-mono text-xs px-2 py-0.5 bg-factory-border rounded text-factory-dim">{item.category}</span></td>
-                      <td className="py-3 px-2 font-mono font-bold"><span className={s.color}>{item.stock} {item.unit}</span></td>
-                      <td className="py-3 px-2 font-mono text-xs text-factory-dim">{item.minStock}/{item.maxStock}</td>
-                      <td className="py-3 px-2">
+                    <tr key={item._id || item.itemId}>
+                      <td>{item.itemId}</td>
+                      <td className="font-medium text-factory-text whitespace-nowrap">{item.name}</td>
+                      <td><span className="font-mono text-xs px-2 py-0.5 bg-factory-border rounded text-factory-dim">{item.category}</span></td>
+                      <td className="font-mono font-bold"><span className={s.color}>{item.stock} {item.unit}</span></td>
+                      <td>{item.minStock}/{item.maxStock}</td>
+                      <td>
                         <div className="flex items-center gap-2 min-w-24">
                           <div className="flex-1 h-1.5 bg-factory-bg rounded overflow-hidden">
                             <div className={`h-full rounded ${s.barColor}`} style={{ width:`${pct}%` }} />
@@ -172,16 +172,16 @@ export default function InventoryPage() {
                           <span className="font-mono text-xs text-factory-dim w-8">{Math.round(pct)}%</span>
                         </div>
                       </td>
-                      <td className="py-3 px-2 font-mono text-xs text-factory-dim">₹{(item.unitCost||0).toLocaleString()}</td>
-                      <td className="py-3 px-2 font-mono text-xs text-factory-text">₹{(item.stock * (item.unitCost||0)).toLocaleString()}</td>
-                      <td className="py-3 px-2 text-xs text-factory-dim">{item.supplier}</td>
-                      <td className="py-3 px-2">
+                      <td>₹{(item.unitCost||0).toLocaleString()}</td>
+                      <td className="text-factory-text">₹{(item.stock * (item.unitCost||0)).toLocaleString()}</td>
+                      <td>{item.supplier}</td>
+                      <td>
                         <div className="flex gap-1">
                           <button onClick={() => handleUpdateStock(item, 10)} className="text-xs px-2 py-1 bg-factory-green/10 border border-factory-green/30 text-factory-green rounded hover:bg-factory-green/20 font-mono">+10</button>
                           <button onClick={() => handleUpdateStock(item, -10)} className="text-xs px-2 py-1 bg-factory-red/10 border border-factory-red/30 text-factory-red rounded hover:bg-factory-red/20 font-mono">-10</button>
                         </div>
                       </td>
-                      <td className="py-3 px-2"><span className={s.badge}>{s.label}</span></td>
+                      <td><span className={s.badge}>{s.label}</span></td>
                     </tr>
                   );
                 })}

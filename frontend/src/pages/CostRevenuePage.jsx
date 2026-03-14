@@ -28,14 +28,50 @@ const PRODUCT_REVENUE = [
   { product: 'Plastic Molds', revenue: 600000, units: 950, margin: 22 },
 ];
 
-const CustomTooltip = ({ active, payload, label }) => {
+/* ── Colour & style constants for the 3 financial metrics ── */
+const METRIC_CFG = {
+  revenue: { color: '#00E5FF', label: 'Revenue', dash: '',    fill: 'url(#revGrad)',  width: 2.5 },
+  cost:    { color: '#FF4D4D', label: 'Cost',    dash: '8 4', fill: 'none',           width: 2   },
+  profit:  { color: '#00FF9C', label: 'Profit',  dash: '',    fill: 'url(#profGrad)', width: 2.5 },
+};
+
+const FinancialTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-factory-panel border border-factory-border rounded p-3 font-mono text-xs">
-      <div className="text-factory-dim mb-1">{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color }}>{p.name}: <strong>₹{Number(p.value).toLocaleString()}</strong></div>
-      ))}
+    <div style={{
+      background: '#0c1628f0', backdropFilter: 'blur(16px)',
+      border: '1px solid #1e3a5f', borderRadius: 12,
+      padding: '12px 16px', minWidth: 190,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+    }}>
+      <div style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+        Month: {label}
+      </div>
+      {payload.map((p, i) => {
+        const cfg = Object.values(METRIC_CFG).find(c => c.label === p.name) || {};
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
+            {/* Coloured indicator matching line style */}
+            <div style={{ width: 18, height: 3, borderRadius: 2, flexShrink: 0, background: cfg.dash ? 'none' : cfg.color, border: cfg.dash ? `2px dashed ${cfg.color}` : 'none', opacity: 0.9 }} />
+            <span style={{ color: '#64748b', fontSize: 12, flex: 1 }}>{p.name}</span>
+            <span style={{ color: cfg.color, fontSize: 13, fontWeight: 700 }}>
+              ₹{(Number(p.value) / 100000).toFixed(1)}L
+            </span>
+          </div>
+        );
+      })}
+      {/* Margin derived from payload */}
+      {(() => {
+        const rev  = payload.find(p => p.dataKey === 'revenue')?.value || 1;
+        const prof = payload.find(p => p.dataKey === 'profit')?.value  || 0;
+        const pct  = ((prof / rev) * 100).toFixed(1);
+        return (
+          <div style={{ borderTop: '1px solid #1e293b', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#64748b', fontSize: 10, fontFamily: 'monospace' }}>MARGIN</span>
+            <span style={{ color: '#00FF9C', fontWeight: 700, fontSize: 12, fontFamily: 'monospace' }}>{pct}%</span>
+          </div>
+        );
+      })()}
     </div>
   );
 };
@@ -85,38 +121,118 @@ export default function CostRevenuePage() {
         <StatCard icon={Users} label="Monthly Labor" value={`₹${(monthlyLabor / 100000).toFixed(1)}L`} sub={`${WORKERS.length} workers × ₹35K avg`} color="text-factory-dim" />
       </div>
 
-      {/* Revenue vs Cost chart */}
-      <div className="factory-card animate-fade-up stagger-2">
-        <div className="section-title mb-4">REVENUE vs COST vs PROFIT — 6 MONTHS</div>
-        <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={MONTHLY_REVENUE} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+      {/* Revenue vs Cost vs Profit — improved chart */}
+      <div className="factory-card animate-fade-up stagger-2" style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* Subtle top glow strip */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,transparent,#00E5FF33,transparent)' }} />
+
+        <div className="flex items-center justify-between mb-5">
+          <div className="section-title">REVENUE vs COST vs PROFIT — 6 MONTHS</div>
+          {/* Updated legend – matching line styles */}
+          <div style={{ display: 'flex', gap: 18 }}>
+            {Object.entries(METRIC_CFG).map(([key, cfg]) => (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                {cfg.dash
+                  ? /* dashed indicator for Cost */
+                    <svg width="22" height="10" style={{ flexShrink: 0 }}>
+                      <line x1="0" y1="5" x2="22" y2="5"
+                        stroke={cfg.color} strokeWidth="2.5"
+                        strokeDasharray="6 3" strokeLinecap="round" />
+                    </svg>
+                  : /* solid indicator for Revenue & Profit */
+                    <span style={{ display: 'inline-block', width: 22, height: 3, borderRadius: 2, background: cfg.color, boxShadow: key === 'profit' ? `0 0 6px ${cfg.color}88` : 'none' }} />
+                }
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: cfg.color, fontWeight: 600 }}>{cfg.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height={260}>
+          <AreaChart data={MONTHLY_REVENUE} margin={{ top: 8, right: 14, left: 10, bottom: 0 }}>
             <defs>
-              <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#00D4FF" stopOpacity={0} />
+              {/* Revenue gradient — cyan */}
+              <linearGradient id="revGrad2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#00E5FF" stopOpacity={0.18} />
+                <stop offset="95%" stopColor="#00E5FF" stopOpacity={0} />
               </linearGradient>
-              <linearGradient id="profGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#00FF94" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#00FF94" stopOpacity={0} />
+              {/* Profit gradient — green */}
+              <linearGradient id="profGrad2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#00FF9C" stopOpacity={0.16} />
+                <stop offset="95%" stopColor="#00FF9C" stopOpacity={0} />
               </linearGradient>
+              {/* Profit glow filter */}
+              <filter id="profitGlow" x="-20%" y="-50%" width="140%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-            <XAxis dataKey="month" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-            <YAxis tickFormatter={v => `₹${(v / 100000).toFixed(0)}L`} tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="revenue" stroke="#00D4FF" fill="url(#revGrad)" strokeWidth={2} name="Revenue" />
-            <Area type="monotone" dataKey="cost" stroke="#FF3860" fill="none" strokeWidth={1.5} strokeDasharray="5 5" name="Cost" />
-            <Area type="monotone" dataKey="profit" stroke="#00FF94" fill="url(#profGrad)" strokeWidth={2} name="Profit" />
+
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+            <XAxis
+              dataKey="month"
+              tick={{ fill: '#5A7A9A', fontSize: 11, fontFamily: 'Share Tech Mono' }}
+              tickLine={false} axisLine={{ stroke: '#1e293b' }}
+            />
+            <YAxis
+              tickFormatter={v => `₹${(v / 100000).toFixed(0)}L`}
+              tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }}
+              tickLine={false} axisLine={false}
+            />
+            <Tooltip
+              content={<FinancialTooltip />}
+              cursor={{ stroke: '#ffffff18', strokeWidth: 1, strokeDasharray: '4 4' }}
+            />
+
+            {/* ① Revenue — solid cyan line + gradient fill */}
+            <Area
+              type="monotone" dataKey="revenue"
+              stroke="#00E5FF" strokeWidth={2.5}
+              fill="url(#revGrad2)"
+              name="Revenue"
+              dot={false}
+              activeDot={{ r: 5, fill: '#00E5FF', stroke: '#020617', strokeWidth: 2 }}
+            />
+
+            {/* ② Cost — dashed red, no fill */}
+            <Area
+              type="monotone" dataKey="cost"
+              stroke="#FF4D4D" strokeWidth={2}
+              strokeDasharray="8 4"
+              fill="none"
+              name="Cost"
+              dot={false}
+              activeDot={{ r: 5, fill: '#FF4D4D', stroke: '#020617', strokeWidth: 2 }}
+            />
+
+            {/* ③ Profit — solid green + gradient fill + glow filter on stroke */}
+            <Area
+              type="monotone" dataKey="profit"
+              stroke="#00FF9C" strokeWidth={2.5}
+              fill="url(#profGrad2)"
+              name="Profit"
+              dot={false}
+              activeDot={{ r: 5, fill: '#00FF9C', stroke: '#020617', strokeWidth: 2 }}
+              style={{ filter: 'drop-shadow(0 0 4px #00FF9C66)' }}
+            />
           </AreaChart>
         </ResponsiveContainer>
-        <div className="flex gap-5 mt-2">
-          {[['Revenue', '#00D4FF'], ['Cost', '#FF3860'], ['Profit', '#00FF94']].map(([label, color]) => (
-            <div key={label} className="flex items-center gap-1.5 text-xs font-mono text-factory-dim">
-              <div className="w-5 h-0.5 rounded" style={{ background: color }}></div> {label}
-            </div>
-          ))}
+
+        {/* Month summary bar */}
+        <div style={{ display: 'flex', gap: 0, marginTop: 12, borderTop: '1px solid #1e293b', paddingTop: 12 }}>
+          {MONTHLY_REVENUE.map(d => {
+            const margin = ((d.profit / d.revenue) * 100).toFixed(0);
+            return (
+              <div key={d.month} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#64748b' }}>{d.month}</div>
+                <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 13, fontWeight: 700, color: '#00FF9C', marginTop: 2 }}>{margin}%</div>
+                <div style={{ fontSize: 9, color: '#475569', fontFamily: 'monospace' }}>margin</div>
+              </div>
+            );
+          })}
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Cost Breakdown Pie */}

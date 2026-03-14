@@ -49,17 +49,17 @@ const REPORT_TYPES = [
 function ProductionPreview() {
   return (
     <div className="overflow-x-auto mt-4">
-      <table className="w-full text-sm font-mono border border-factory-border rounded-lg overflow-hidden">
+      <table className="saas-table">
         <thead>
-          <tr className="bg-factory-border">
+          <tr>
             {['Date', 'Target', 'Actual', 'Variance', 'Efficiency'].map(h => (
-              <th key={h} className="text-left py-2 px-3 text-xs text-factory-dim tracking-wider">{h}</th>
+              <th key={h}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {PRODUCTION_DATA.map(d => (
-            <tr key={d.date} className="border-t border-factory-border/30">
+            <tr key={d.date}>
               <td className="py-2 px-3 text-factory-text">{d.date}</td>
               <td className="py-2 px-3 text-factory-dim">{d.target}</td>
               <td className={`py-2 px-3 font-bold ${d.actual >= d.target ? 'text-factory-green' : 'text-factory-amber'}`}>{d.actual}</td>
@@ -76,17 +76,17 @@ function ProductionPreview() {
 function MachinePreview() {
   return (
     <div className="overflow-x-auto mt-4">
-      <table className="w-full text-sm font-mono border border-factory-border rounded-lg overflow-hidden">
+      <table className="saas-table">
         <thead>
-          <tr className="bg-factory-border">
+          <tr>
             {['Machine', 'Status', 'Temp °C', 'Vibration', 'Efficiency', 'Runtime'].map(h => (
-              <th key={h} className="text-left py-2 px-3 text-xs text-factory-dim">{h}</th>
+              <th key={h}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {MACHINES.map(m => (
-            <tr key={m.id} className="border-t border-factory-border/30">
+            <tr key={m.id}>
               <td className="py-2 px-3 text-factory-text">{m.name}</td>
               <td className="py-2 px-3">
                 <span className={m.status === 'operational' ? 'badge-operational' : m.status === 'warning' ? 'badge-warning' : m.status === 'critical' ? 'badge-critical' : 'badge-offline'}>
@@ -195,17 +195,17 @@ export default function ReportsPage() {
         {activeReport === 'machine' && <MachinePreview />}
         {activeReport === 'worker' && (
           <div className="overflow-x-auto mt-4">
-            <table className="w-full text-sm font-mono border border-factory-border rounded-lg overflow-hidden">
+            <table className="saas-table">
               <thead>
-                <tr className="bg-factory-border">
+                <tr>
                   {['Worker', 'Department', 'Role', 'Performance', 'Tasks Done', 'Safety'].map(h => (
-                    <th key={h} className="text-left py-2 px-3 text-xs text-factory-dim">{h}</th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {WORKERS.map(w => (
-                  <tr key={w.id} className="border-t border-factory-border/30">
+                  <tr key={w.id}>
                     <td className="py-2 px-3 text-factory-text">{w.name}</td>
                     <td className="py-2 px-3 text-factory-dim">{w.department}</td>
                     <td className="py-2 px-3 text-factory-dim">{w.role}</td>
@@ -220,11 +220,11 @@ export default function ReportsPage() {
         )}
         {activeReport === 'inventory' && (
           <div className="overflow-x-auto mt-4">
-            <table className="w-full text-sm font-mono border border-factory-border rounded-lg overflow-hidden">
+            <table className="saas-table">
               <thead>
-                <tr className="bg-factory-border">
+                <tr>
                   {['Item', 'Category', 'Stock', 'Min Stock', 'Status', 'Value'].map(h => (
-                    <th key={h} className="text-left py-2 px-3 text-xs text-factory-dim">{h}</th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -232,7 +232,7 @@ export default function ReportsPage() {
                 {INVENTORY.map(item => {
                   const isLow = item.stock <= item.minStock;
                   return (
-                    <tr key={item.id} className="border-t border-factory-border/30">
+                    <tr key={item.id}>
                       <td className="py-2 px-3 text-factory-text">{item.name}</td>
                       <td className="py-2 px-3 text-factory-dim">{item.category}</td>
                       <td className={`py-2 px-3 font-bold ${isLow ? 'text-factory-red' : 'text-factory-green'}`}>{item.stock} {item.unit}</td>

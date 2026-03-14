@@ -11,15 +11,17 @@ import MachinesPage from './pages/MachinesPage';
 import ProductionPage from './pages/ProductionPage';
 import InventoryPage from './pages/InventoryPage';
 import WorkersPage from './pages/WorkersPage';
+import WorkerProfile from './pages/WorkerProfile';
 import AlertsPage from './pages/AlertsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ReportsPage from './pages/ReportsPage';
 import SafetyPage from './pages/SafetyPage';
 import MaintenancePage from './pages/MaintenancePage';
+import ScheduleMaintenancePage from './pages/ScheduleMaintenancePage';
 import ChatbotPage from './pages/ChatbotPage';
 import EnergyPage from './pages/EnergyPage';
 import CostRevenuePage from './pages/CostRevenuePage';
-import QRPage from './pages/QRPage';
+
 import AdminPage from './pages/AdminPage'; // Added 
 
 function PrivateRoute({ children }) {
@@ -39,9 +41,11 @@ function AppRoutes() {
         <Route path="admin" element={<AdminPage />} />
         <Route path="machines" element={<MachinesPage />} />
         <Route path="maintenance" element={<MaintenancePage />} />
+        <Route path="schedule-maintenance/:machineId" element={<ScheduleMaintenancePage />} />
         <Route path="production" element={<ProductionPage />} />
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="workers" element={<WorkersPage />} />
+        <Route path="workers/:id" element={<WorkerProfile />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="reports" element={<ReportsPage />} />
@@ -49,7 +53,7 @@ function AppRoutes() {
         <Route path="chatbot" element={<ChatbotPage />} />
         <Route path="energy" element={<EnergyPage />} />
         <Route path="cost-revenue" element={<CostRevenuePage />} />
-        <Route path="qr-scanner" element={<QRPage />} />
+
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

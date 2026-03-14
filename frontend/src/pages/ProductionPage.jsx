@@ -216,11 +216,11 @@ export default function ProductionPage() {
       <div className="factory-card animate-fade-up stagger-5">
         <div className="section-title mb-4">DAILY PRODUCTION REPORT</div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm font-mono">
+          <table className="saas-table">
             <thead>
-              <tr className="border-b border-factory-border">
+              <tr>
                 {['Date', 'Target', 'Actual', 'Variance', 'Efficiency', 'Status'].map(h => (
-                  <th key={h} className="text-left py-3 px-3 text-xs text-factory-dim tracking-wider">{h}</th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -229,14 +229,14 @@ export default function ProductionPage() {
                 const variance = d.actual - d.target;
                 const isAbove = variance >= 0;
                 return (
-                  <tr key={d.date} className="border-b border-factory-border/30 hover:bg-factory-border/20 transition-colors">
-                    <td className="py-3 px-3 text-factory-text">{d.date}</td>
-                    <td className="py-3 px-3 text-factory-dim">{d.target}</td>
-                    <td className={`py-3 px-3 font-bold ${isAbove ? 'text-factory-green' : 'text-factory-amber'}`}>{d.actual}</td>
-                    <td className={`py-3 px-3 ${isAbove ? 'text-factory-green' : 'text-factory-red'}`}>{isAbove ? '+' : ''}{variance}</td>
-                    <td className={`py-3 px-3 ${d.efficiency >= 100 ? 'text-factory-green' : d.efficiency >= 90 ? 'text-factory-accent' : 'text-factory-amber'}`}>{d.efficiency}%</td>
-                    <td className="py-3 px-3">
-                      <span className={d.efficiency >= 100 ? 'badge-operational' : d.efficiency >= 90 ? 'badge-warning' : 'badge-warning'}>
+                  <tr key={d.date}>
+                    <td>{d.date}</td>
+                    <td>{d.target}</td>
+                    <td className={`font-bold ${isAbove ? 'text-factory-green' : 'text-factory-amber'}`}>{d.actual}</td>
+                    <td className={isAbove ? 'text-factory-green' : 'text-factory-red'}>{isAbove ? '+' : ''}{variance}</td>
+                    <td className={d.efficiency >= 100 ? 'text-factory-green' : 'text-factory-amber'}>{d.efficiency}%</td>
+                    <td>
+                      <span className={d.efficiency >= 100 ? 'badge-operational' : 'badge-warning'}>
                         {d.efficiency >= 100 ? 'EXCEEDED' : d.efficiency >= 90 ? 'ON TRACK' : 'BELOW'}
                       </span>
                     </td>

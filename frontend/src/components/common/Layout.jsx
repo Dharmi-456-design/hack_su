@@ -1,26 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLive } from '../../context/LiveDataContext';
+import api from '../../api';
 import {
   LayoutDashboard, Cpu, BarChart3, Package, Users, Bell, BellOff,
   LineChart, FileText, ShieldCheck, Wrench, LogOut,
   ChevronLeft, ChevronRight, Zap, Factory, Volume2, VolumeX,
-  Bot, QrCode, DollarSign, Activity
+  Bot, DollarSign, Activity
 } from 'lucide-react';
 
 const T = {
-  bg:      '#020617',
-  panel:   '#080f1f',
-  card:    '#0c1628',
-  border:  '#1e293b',
+  bg:      '#0B1420',
+  panel:   '#111C2D',
+  card:    '#111C2D',
+  border:  '#1F2F46',
   accent:  '#00E5FF',
-  green:   '#22C55E',
-  amber:   '#F59E0B',
-  red:     '#EF4444',
-  text:    '#f1f5f9',
-  dim:     '#475569',
-  fontHead: "'Orbitron', sans-serif",
+  green:   '#00FF9C',
+  amber:   '#FFC857',
+  red:     '#FF4D4D',
+  text:    '#FFFFFF',
+  dim:     '#A0B3C6',
+  fontHead: "'Inter', sans-serif",
   fontBody: "'Inter', sans-serif",
 };
 
@@ -37,7 +38,7 @@ const NAV_ITEMS = [
   { path: '/energy',       icon: Zap,             label: 'Energy Monitor' },
   { path: '/cost-revenue', icon: DollarSign,      label: 'Cost & Revenue' },
   { path: '/chatbot',      icon: Bot,             label: 'AI Assistant' },
-  { path: '/qr-scanner',   icon: QrCode,           label: 'QR Scanner' },
+
   { path: '/reports',      icon: FileText,        label: 'Reports' },
 ];
 
@@ -46,8 +47,55 @@ export default function Layout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { unreadCount, lastUpdate, soundEnabled, setSoundEnabled, notifEnabled, setNotifEnabled } = useLive();
+  const [pushLogs, setPushLogs] = useState([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
+
+  const fetchPushLogs = useCallback(async () => {
+    try {
+      const { data } = await api.get('/push/logs');
+      setPushLogs(data.data || []);
+    } catch (e) {
+      console.error('Failed to fetch push logs', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const requestPushPermission = async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const swReg = await navigator.serviceWorker.register('/sw.js');
+          const { data } = await api.get('/push/public-key');
+          
+          const padding = '='.repeat((4 - data.publicKey.length % 4) % 4);
+          const base64 = (data.publicKey + padding).replace(/\-/g, '+').replace(/_/g, '/');
+          const rawData = window.atob(base64);
+          const convertedVapidKey = new Uint8Array([...rawData].map(char => char.charCodeAt(0)));
+          
+          let subscription = await swReg.pushManager.getSubscription();
+          if (!subscription) {
+            subscription = await swReg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedVapidKey
+            });
+          }
+          await api.post('/push/subscribe', { userId: user?._id || 'admin', token: subscription });
+        }
+      } catch (error) { console.error('Push setup failed', error); }
+    };
+    
+    if (user && notifEnabled) requestPushPermission();
+    fetchPushLogs();
+
+    const handleMessage = (e) => {
+      if (e.data && e.data.type === 'PUSH_RECEIVED') fetchPushLogs();
+    };
+    navigator.serviceWorker?.addEventListener('message', handleMessage);
+    return () => navigator.serviceWorker?.removeEventListener('message', handleMessage);
+  }, [user, notifEnabled, fetchPushLogs]);
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: T.bg, overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
@@ -82,8 +130,8 @@ export default function Layout() {
           </div>
           {sidebarOpen && (
             <div>
-              <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 11, fontWeight: 800, color: T.accent, letterSpacing: 2, textShadow: `0 0 15px ${T.accent}88` }}>SMARTFACTORY</div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: T.dim, letterSpacing: 1, marginTop: 1 }}>AI MANAGEMENT SYSTEM</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 800, color: T.text, letterSpacing: 1 }}>SMARTFACTORY.<span style={{color: T.accent}}>AI</span></div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: T.dim, letterSpacing: 0.5, marginTop: 2 }}>MANAGEMENT SYSTEM</div>
             </div>
           )}
         </div>
@@ -114,9 +162,9 @@ export default function Layout() {
                     {label === 'Smart Alerts' && unreadCount > 0 && (
                       <span style={{
                         position: 'absolute', top: -5, right: -5, width: 14, height: 14,
-                        background: T.red, borderRadius: '50%', fontSize: 8, fontWeight: 700,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: "'Orbitron', sans-serif",
-                        boxShadow: `0 0 8px ${T.red}`,
+                        background: T.red, borderRadius: '50%', fontSize: 9, fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: "'Inter', sans-serif",
+                        boxShadow: `0 2px 4px rgba(239, 68, 68, 0.4)`,
                       }}>{unreadCount}</span>
                     )}
                   </div>
@@ -133,7 +181,7 @@ export default function Layout() {
             width: 34, height: 34, flexShrink: 0, borderRadius: '50%',
             background: 'rgba(0,229,255,0.1)', border: `1px solid rgba(0,229,255,0.3)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'Orbitron', sans-serif", fontSize: 10, fontWeight: 700, color: T.accent,
+            fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700, color: T.text,
           }}>
             {user?.avatar}
           </div>
@@ -182,8 +230,8 @@ export default function Layout() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.green, boxShadow: `0 0 10px ${T.green}`, animation: 'pulse 2s infinite' }} />
-              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 10, fontWeight: 700, color: T.green, letterSpacing: 2 }}>LIVE</span>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.green, boxShadow: `0 0 4px ${T.green}` }} />
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700, color: T.green, letterSpacing: 1 }}>LIVE</span>
             </div>
             <div style={{ width: 1, height: 20, background: T.border }} />
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: T.dim }}>
@@ -194,7 +242,7 @@ export default function Layout() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: T.amber }}>
               <Zap size={13} />
-              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: 1 }}>SHIFT: MORNING</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>SHIFT: MORNING</span>
             </div>
 
             {/* Sound toggle */}
@@ -214,17 +262,54 @@ export default function Layout() {
             </button>
 
             {/* Alert bell */}
-            <NavLink to="/alerts" style={{ position: 'relative', color: T.dim, display: 'flex', padding: 6, borderRadius: 8, transition: 'color 0.2s', textDecoration: 'none' }}>
-              <Bell size={18} />
-              {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: 0, right: 0, width: 16, height: 16,
-                  background: T.red, borderRadius: '50%', fontSize: 9, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                  fontFamily: "'Orbitron', sans-serif", boxShadow: `0 0 10px ${T.red}`,
-                }}>{unreadCount}</span>
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: T.dim, transition: 'color 0.2s', display: 'flex' }}
+              >
+                <Bell size={18} />
+                {(pushLogs.length > 0 || unreadCount > 0) && (
+                  <span style={{
+                    position: 'absolute', top: 0, right: 0, width: 16, height: 16,
+                    background: T.red, borderRadius: '50%', fontSize: 9, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                    fontFamily: "'Inter', sans-serif", boxShadow: `0 2px 4px rgba(239, 68, 68, 0.4)`,
+                  }}>{Math.max(pushLogs.length, unreadCount)}</span>
+                )}
+              </button>
+              
+              {isNotifOpen && (
+                <div style={{
+                  position: 'absolute', top: 40, right: 0, width: 340, background: '#0B1420',
+                  border: `1px solid rgba(0,229,255,0.3)`, borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
+                  zIndex: 100, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                  animation: 'fadeIn 0.2s ease-out'
+                }}>
+                  <div style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: "'Inter', sans-serif" }}>Notifications</span>
+                    <button onClick={() => { setIsNotifOpen(false); navigate('/alerts'); }} style={{ background:'none', border:'none', color: T.accent, fontSize: 11, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}>View All</button>
+                  </div>
+                  <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                    {pushLogs.length === 0 ? (
+                      <div style={{ padding: 30, textAlign: 'center', color: T.dim, fontSize: 12, fontFamily: "'Inter', sans-serif" }}>No recent alerts</div>
+                    ) : (
+                      pushLogs.slice(0, 10).map((log, i) => (
+                        <div key={log._id || i} onClick={() => { setIsNotifOpen(false); navigate('/machines'); }} style={{ padding: '14px 16px', borderBottom: `1px solid ${T.border}`, cursor: 'pointer', fontFamily: "'Inter', sans-serif", transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background='rgba(0,229,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                          <div style={{ display: 'flex',justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                            <div style={{ color: log.alertType === 'critical' ? T.red : log.alertType === 'warning' ? T.amber : T.accent, fontSize: 12, fontWeight: 600 }}>{log.title}</div>
+                            <div style={{ color: T.dim, fontSize: 9, flexShrink: 0 }}>{new Date(log.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                          </div>
+                          <div style={{ color: T.dim, fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>{log.message}</div>
+                          {log.machine && (
+                            <div style={{ color: T.accent, fontSize: 10, background: 'rgba(0,229,255,0.1)', display: 'inline-block', padding: '3px 8px', borderRadius: 4, border: `1px solid rgba(0,229,255,0.2)` }}>{log.machine}</div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
-            </NavLink>
+            </div>
           </div>
         </header>
 

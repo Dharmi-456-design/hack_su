@@ -57,7 +57,7 @@ const ActivityLogSchema = new mongoose.Schema({
 
 // ─── Alert ──────────────────────────────────────────────────────
 const AlertSchema = new mongoose.Schema({
-  type: { type: String, enum: ['critical', 'warning', 'info'], required: true },
+  type: { type: String, enum: ['critical', 'warning', 'info', 'safe'], required: true },
   title: { type: String, required: true },
   message: { type: String, required: true },
   machineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Machine', default: null },

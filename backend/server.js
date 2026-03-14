@@ -47,6 +47,7 @@ app.use('/api/analytics',  require('./routes/analyticsRoutes'));
 app.use('/api/maintenance',require('./routes/maintenanceRoutes'));
 app.use('/api/safety',     require('./routes/safetyRoutes'));
 app.use('/api/users',      require('./routes/userRoutes')); // new
+app.use('/api/push',       require('./routes/pushRoutes'));
 
 // ─── Health check ───────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

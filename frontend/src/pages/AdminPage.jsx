@@ -43,27 +43,25 @@ function AdminTable({ columns, rows, onDelete, onEdit, emptyMsg = 'No data yet.'
   );
   return (
     <div style={{ overflowX:'auto' }}>
-      <table style={{ width:'100%', borderCollapse:'collapse', fontFamily:'Inter', fontSize:13, color:T.text }}>
+      <table className="saas-table">
         <thead>
-          <tr style={{ borderBottom:`1px solid ${T.border}` }}>
+          <tr>
             {columns.map(c => (
-              <th key={c.key} style={{ textAlign:'left', padding:'10px 12px', color:T.dim, fontFamily:'Orbitron', fontSize:9, letterSpacing:1, textTransform:'uppercase', whiteSpace:'nowrap' }}>{c.label}</th>
+              <th key={c.key}>{c.label}</th>
             ))}
-            {(onDelete || onEdit) && <th style={{ textAlign:'right', padding:'10px 12px', color:T.dim, fontFamily:'Orbitron', fontSize:9, letterSpacing:1 }}>ACTIONS</th>}
+            {(onDelete || onEdit) && <th style={{ textAlign:'right' }}>ACTIONS</th>}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={row._id || ri} style={{ borderBottom:`1px solid ${T.border}22` }}
-              onMouseEnter={e => e.currentTarget.style.background = '#ffffff08'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            <tr key={row._id || ri}>
               {columns.map(c => (
-                <td key={c.key} style={{ padding:'10px 12px', verticalAlign:'middle' }}>
+                <td key={c.key}>
                   {c.render ? c.render(row[c.key], row) : (row[c.key] ?? '—')}
                 </td>
               ))}
               {(onDelete || onEdit) && (
-                <td style={{ padding:'10px 12px', textAlign:'right' }}>
+                <td>
                   <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
                     {onEdit   && <button onClick={() => onEdit(row)}   style={{ ...btnPrimary, padding:'5px 10px', fontSize:10 }}><Edit2  size={12}/></button>}
                     {onDelete && <button onClick={() => { if(window.confirm('Delete this record?')) onDelete(row); }} style={btnDanger}><Trash2 size={12}/></button>}

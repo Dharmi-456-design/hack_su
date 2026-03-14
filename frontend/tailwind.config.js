@@ -5,21 +5,21 @@ export default {
     extend: {
       colors: {
         factory: {
-          bg: '#020617',
-          panel: '#0f172a',
-          card: '#0f172a',
-          border: '#1e293b',
-          accent: '#00E5FF',
-          green: '#22C55E',
-          amber: '#F59E0B',
-          red: '#EF4444',
-          muted: '#64748b',
-          text: '#f8fafc',
-          dim: '#94a3b8',
+          bg: '#0B1420',       // Main deep navy background
+          panel: '#111C2D',    // Secondary panel background
+          card: '#111C2D',     // Card background
+          border: '#1F2F46',   // Darker borders for a modern look
+          accent: '#00E5FF',   // Neon cyan accent
+          green: '#00FF9C',    // Success / Safe
+          amber: '#FFC857',    // Warning
+          red: '#FF4D4D',      // Critical
+          muted: '#A0B3C6',    // Muted text color
+          text: '#FFFFFF',     // Primary text
+          dim: '#A0B3C6',      // Secondary text / subtitles
         }
       },
       fontFamily: {
-        display: ['Orbitron', 'sans-serif'],
+        display: ['Inter', 'sans-serif'], // Updated to modern sans-serif
         body: ['Inter', 'sans-serif'],
         mono: ['Share Tech Mono', 'monospace'],
       },

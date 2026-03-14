@@ -20,11 +20,11 @@ import ChatbotPage from './pages/ChatbotPage';
 import EnergyPage from './pages/EnergyPage';
 import CostRevenuePage from './pages/CostRevenuePage';
 import QRPage from './pages/QRPage';
-
-
+import AdminPage from './pages/AdminPage'; // Added 
 
 function PrivateRoute({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return <div>Loading...</div>;
   return user ? children : <Navigate to="/welcome" replace />;
 }
 
@@ -36,6 +36,7 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<DashboardPage />} />
+        <Route path="admin" element={<AdminPage />} />
         <Route path="machines" element={<MachinesPage />} />
         <Route path="maintenance" element={<MaintenancePage />} />
         <Route path="production" element={<ProductionPage />} />

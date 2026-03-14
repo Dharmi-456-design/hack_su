@@ -200,7 +200,7 @@ const ViewAll = ({ to }) => (
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const [time, setTime] = useState(new Date());
-  const { machines, alerts, analytics } = useLive();
+  const { machines, alerts, production, analytics } = useLive();
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -249,7 +249,7 @@ export default function DashboardPage() {
       }}>
         {[
           { dot: T.green,  text: 'All Systems Monitored',                                       textColor: T.green },
-          { icon: <Zap size={13} color={T.amber} />, text: `${ANALYTICS.critical + ANALYTICS.warning} Machines Need Attention`, textColor: T.amber },
+          { icon: <Zap size={13} color={T.amber} />, text: `${machines.filter(m=>m.status!=='Running').length} Machines Non-Operational`, textColor: T.amber },
           { icon: <AlertTriangle size={13} color={T.red} />, text: `${unread.length} Unread Alerts`, textColor: T.red },
         ].map((item, i) => (
           <React.Fragment key={i}>
@@ -271,17 +271,17 @@ export default function DashboardPage() {
 
       {/* ── KPI Metric Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <MetricCard title="Machines Online"  value={`${machines.filter(m => m.status === 'operational').length}/${machines.length}`}
-          subtitle={`${machines.filter(m => m.status === 'critical').length} critical · ${machines.filter(m => m.status === 'warning').length} warning`}
-          icon={Cpu} color="accent" trend={5} delay={0} />
-        <MetricCard title="Today's Output"   value={analytics.productionToday}
-          subtitle={`Target: ${analytics.productionTarget} units`}
-          icon={Factory} color="green" trend={-7.6} delay={60} />
-        <MetricCard title="Active Workers"   value={`${analytics.activeWorkers}/${analytics.totalWorkers}`}
-          subtitle="1 on leave today"
-          icon={Users} color="amber" trend={0} delay={120} />
+        <MetricCard title="Total Machines"  value={machines.length}
+          subtitle={`${machines.filter(m => m.status === 'Running').length} running · ${machines.filter(m => m.status === 'Maintenance').length} maintenance`}
+          icon={Cpu} color="accent" trend={0} delay={0} />
+        <MetricCard title="Today's Output"   value={production.today}
+          subtitle={`Target: ${production.target} units`}
+          icon={Factory} color="green" trend={-2.3} delay={60} />
+        <MetricCard title="Efficiency %"   value={machines.length > 0 ? Math.round(machines.reduce((a,b)=>a+b.efficiency,0)/machines.length) : 0}
+          subtitle="Overall Equipment Effectiveness"
+          icon={Users} color="amber" trend={1.2} delay={120} />
         <MetricCard title="Active Alerts"    value={unread.length}
-          subtitle={`${analytics.inventoryAlerts} inventory · ${machines.filter(m => m.status === 'critical').length} critical`}
+          subtitle={"Real-time system alerts"}
           icon={AlertTriangle} color="red" delay={180} />
       </div>
 

@@ -1,40 +1,54 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../api';
 
 const AuthContext = createContext(null);
 
-const DEMO_USERS = [
-  { id: 'u001', email: 'admin@factory.com', password: 'admin123', name: 'Rajesh Kumar', role: 'Admin', avatar: 'RK' },
-  { id: 'u002', email: 'manager@factory.com', password: 'manager123', name: 'Kavya Iyer', role: 'Manager', avatar: 'KI' },
-  { id: 'u003', email: 'worker@factory.com', password: 'worker123', name: 'Arjun Sharma', role: 'Worker', avatar: 'AS' },
-];
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState({ id: 'u001', email: 'admin@factory.com', name: 'Rajesh Kumar', role: 'Admin', avatar: 'RK' });
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const res = await api.get('/auth/me');
+          setUser(res.data.user);
+        } catch (err) {
+          localStorage.removeItem('token');
+          setUser(null);
+        }
+      }
+      setLoading(false);
+    };
+    loadUser();
+  }, []);
 
   const login = async (email, password) => {
     setLoading(true);
     setError(null);
-    await new Promise(r => setTimeout(r, 800)); // simulate API call
-    const found = DEMO_USERS.find(u => u.email === email && u.password === password);
-    if (found) {
-      const { password: _, ...safeUser } = found;
-      setUser(safeUser);
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      localStorage.setItem('token', res.data.token);
+      setUser(res.data.user);
       setLoading(false);
       return true;
-    } else {
-      setError('Invalid email or password');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Login failed');
       setLoading(false);
       return false;
     }
   };
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading, error }}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

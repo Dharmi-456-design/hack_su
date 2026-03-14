@@ -26,19 +26,19 @@ const T = {
 
 const NAV_ITEMS = [
   { path: '/',             icon: LayoutDashboard, label: 'Dashboard',     exact: true },
+  { path: '/admin',        icon: ShieldCheck,     label: 'Admin Panel',   adminOnly: true },
   { path: '/machines',     icon: Cpu,             label: 'Machine Health' },
   { path: '/maintenance',  icon: Wrench,          label: 'Predictive Maint.' },
   { path: '/production',   icon: BarChart3,       label: 'Production' },
   { path: '/inventory',    icon: Package,         label: 'Inventory' },
   { path: '/workers',      icon: Users,           label: 'Workforce' },
   { path: '/alerts',       icon: Bell,            label: 'Smart Alerts' },
-  { path: '/analytics',   icon: LineChart,        label: 'Analytics' },
+  { path: '/analytics',    icon: LineChart,        label: 'Analytics' },
   { path: '/energy',       icon: Zap,             label: 'Energy Monitor' },
   { path: '/cost-revenue', icon: DollarSign,      label: 'Cost & Revenue' },
   { path: '/chatbot',      icon: Bot,             label: 'AI Assistant' },
-  { path: '/qr-scanner',  icon: QrCode,           label: 'QR Scanner' },
+  { path: '/qr-scanner',   icon: QrCode,           label: 'QR Scanner' },
   { path: '/reports',      icon: FileText,        label: 'Reports' },
-  { path: '/safety',       icon: ShieldCheck,     label: 'Safety' },
 ];
 
 export default function Layout() {
@@ -90,8 +90,7 @@ export default function Layout() {
 
         {/* Nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
-          {sidebarOpen && <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 8, fontWeight: 700, color: T.dim, textTransform: 'uppercase', letterSpacing: 2, padding: '4px 10px 10px' }}>Navigation</div>}
-          {NAV_ITEMS.map(({ path, icon: Icon, label, exact }) => (
+          {NAV_ITEMS.filter(item => !item.adminOnly || user?.role === 'Admin').map(({ path, icon: Icon, label, exact }) => (
             <NavLink
               key={path}
               to={path}

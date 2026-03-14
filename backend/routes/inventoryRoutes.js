@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { Inventory } = require('../models/index');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
 router.get('/', protect, async (req, res) => {
   try {
@@ -30,6 +30,14 @@ router.put('/:id', protect, async (req, res) => {
     const item = await Inventory.findOneAndUpdate({ itemId: req.params.id }, req.body, { new: true });
     res.json({ success: true, data: item });
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+router.delete('/:id', protect, authorize('Admin'), async (req, res) => {
+  try {
+    const item = await Inventory.findOneAndDelete({ itemId: req.params.id });
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+    res.json({ success: true, message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

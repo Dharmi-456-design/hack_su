@@ -31,4 +31,20 @@ router.put('/read-all', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.post('/', protect, async (req, res) => {
+  try {
+    const alert = await Alert.create(req.body);
+    req.app.get('io').emit('alertAdded', alert);
+    res.status(201).json({ success: true, data: alert });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    await Alert.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Alert deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
+

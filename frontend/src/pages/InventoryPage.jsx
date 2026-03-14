@@ -1,46 +1,72 @@
 import React, { useState } from 'react';
-import { INVENTORY } from '../data/dummyData';
-import { Package, AlertTriangle, TrendingDown, Search, Plus, Download, X, ShoppingCart, Upload } from 'lucide-react';
+import { useApi } from '../hooks/useApi';
+import { Package, AlertTriangle, Search, Plus, Download, X, ShoppingCart, Upload } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../api';
 
 const ModalOverlay = ({ children, onClose }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-    <div onClick={e => e.stopPropagation()} className="w-full max-w-lg" style={{ animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(2,6,23,0.85)', backdropFilter:'blur(8px)' }} onClick={onClose}>
+    <div onClick={e => e.stopPropagation()} className="w-full max-w-lg">
       {children}
     </div>
   </div>
 );
 
-const InputGroup = ({ label, type = "text", placeholder, defaultValue, required }) => (
-  <div className="mb-4">
-    <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase letter-spacing-1">{label} {required && <span className="text-factory-red">*</span>}</label>
-    <input type={type} placeholder={placeholder} defaultValue={defaultValue} required={required}
-      className="w-full bg-factory-bg/50 border border-factory-border rounded px-4 py-2.5 text-factory-text font-body text-sm focus:outline-none focus:border-factory-accent transition-colors"
-      style={{ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}
-    />
-  </div>
-);
+function Field({ label, required, children }) {
+  return (
+    <div className="mb-4">
+      <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase">{label} {required && <span className="text-factory-red">*</span>}</label>
+      {children}
+    </div>
+  );
+}
+
+const inputCls = "w-full bg-factory-bg/50 border border-factory-border rounded px-4 py-2.5 text-factory-text font-body text-sm focus:outline-none focus:border-factory-accent transition-colors";
 
 export default function InventoryPage() {
-  const [search, setSearch] = useState('');
+  const { data: inventory, loading, reload, create: createItem, remove: deleteItem } = useApi('/inventory');
+  const [search, setSearch]   = useState('');
   const [category, setCategory] = useState('all');
   const [orderingItem, setOrderingItem] = useState(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [form, setForm] = useState({
+    itemId:'', name:'', category:'Raw Material', unit:'kg',
+    stock:0, minStock:0, maxStock:1000, unitCost:0, supplier:''
+  });
 
-  const categories = [...new Set(INVENTORY.map(i => i.category))];
-  const filtered = INVENTORY.filter(item => {
-    const matchSearch = item.name.toLowerCase().includes(search.toLowerCase()) || item.supplier.toLowerCase().includes(search.toLowerCase());
+  const categories = [...new Set(inventory.map(i => i.category))];
+  const filtered = inventory.filter(item => {
+    const matchSearch = (item.name || '').toLowerCase().includes(search.toLowerCase())
+      || (item.supplier || '').toLowerCase().includes(search.toLowerCase());
     const matchCat = category === 'all' || item.category === category;
     return matchSearch && matchCat;
   });
 
-  const lowStock = INVENTORY.filter(i => i.stock <= i.minStock);
-  const totalValue = INVENTORY.reduce((s, i) => s + i.stock * i.unitCost, 0);
+  const lowStock   = inventory.filter(i => i.stock <= i.minStock);
+  const totalValue = inventory.reduce((s, i) => s + (i.stock * i.unitCost), 0);
 
   const getStockStatus = (item) => {
-    const pct = (item.stock / item.maxStock) * 100;
-    if (item.stock <= item.minStock) return { label: 'CRITICAL', color: 'text-factory-red', barColor: 'bg-factory-red', badge: 'badge-critical' };
-    if (pct < 30) return { label: 'LOW', color: 'text-factory-amber', barColor: 'bg-factory-amber', badge: 'badge-warning' };
-    return { label: 'OK', color: 'text-factory-green', barColor: 'bg-factory-green', badge: 'badge-operational' };
+    const pct = (item.stock / (item.maxStock || 1)) * 100;
+    if (item.stock <= item.minStock) return { label:'CRITICAL', color:'text-factory-red',   barColor:'bg-factory-red',   badge:'badge-critical' };
+    if (pct < 30)                    return { label:'LOW',      color:'text-factory-amber', barColor:'bg-factory-amber', badge:'badge-warning' };
+    return                                  { label:'OK',       color:'text-factory-green', barColor:'bg-factory-green', badge:'badge-operational' };
+  };
+
+  const handleAddItem = async (e) => {
+    e.preventDefault();
+    if (!form.itemId || !form.name) return toast.error('Item ID and Name required');
+    await createItem(form);
+    setIsAddingItem(false);
+    setForm({ itemId:'', name:'', category:'Raw Material', unit:'kg', stock:0, minStock:0, maxStock:1000, unitCost:0, supplier:'' });
+  };
+
+  const handleUpdateStock = async (item, delta) => {
+    try {
+      const newStock = Math.max(0, item.stock + delta);
+      await api.put(`/inventory/${item.itemId}`, { stock: newStock });
+      toast.success(`Stock updated to ${newStock}`);
+      reload();
+    } catch { toast.error('Failed to update stock'); }
   };
 
   return (
@@ -50,7 +76,7 @@ export default function InventoryPage() {
           <h1 className="page-title">INVENTORY AUTOMATION</h1>
           <p className="text-factory-dim font-body text-sm mt-1">Real-time stock tracking with automated low-stock alerts</p>
         </div>
-        <button onClick={() => setIsAddingItem(true)} className="btn-primary flex items-center gap-2 hover:-translate-y-1 transition-transform" style={{ boxShadow: '0 4px 15px rgba(0,229,255,0.2)' }}>
+        <button onClick={() => setIsAddingItem(true)} className="btn-primary flex items-center gap-2 hover:-translate-y-1 transition-transform">
           <Plus size={14} /> ADD ITEM
         </button>
       </div>
@@ -58,10 +84,10 @@ export default function InventoryPage() {
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-up">
         {[
-          { label: 'Total Items', value: INVENTORY.length, color: 'text-factory-accent', sub: 'In inventory' },
-          { label: 'Low Stock Alerts', value: lowStock.length, color: 'text-factory-red', sub: 'Need reorder' },
-          { label: 'Total Value', value: `₹${(totalValue / 100000).toFixed(1)}L`, color: 'text-factory-green', sub: 'Inventory worth' },
-          { label: 'Suppliers', value: new Set(INVENTORY.map(i => i.supplier)).size, color: 'text-factory-amber', sub: 'Active vendors' },
+          { label:'Total Items',     value: inventory.length,    color:'text-factory-accent', sub:'In inventory' },
+          { label:'Low Stock',       value: lowStock.length,     color:'text-factory-red',    sub:'Need reorder' },
+          { label:'Total Value',     value: `₹${(totalValue/100000).toFixed(1)}L`, color:'text-factory-green', sub:'Inventory worth' },
+          { label:'Suppliers',       value: new Set(inventory.map(i => i.supplier).filter(Boolean)).size, color:'text-factory-amber', sub:'Active vendors' },
         ].map(({ label, value, color, sub }) => (
           <div key={label} className="factory-card text-center">
             <div className={`font-display text-3xl font-bold ${color}`}>{value}</div>
@@ -80,14 +106,14 @@ export default function InventoryPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {lowStock.map(item => (
-              <div key={item.id} className="bg-factory-red/5 border border-factory-red/30 rounded-lg p-3">
+              <div key={item._id || item.itemId} className="bg-factory-red/5 border border-factory-red/30 rounded-lg p-3">
                 <div className="font-medium text-factory-text text-sm">{item.name}</div>
                 <div className="font-mono text-xs text-factory-dim mt-0.5">{item.supplier}</div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="font-display text-lg font-bold text-factory-red">{item.stock} {item.unit}</span>
                   <span className="font-mono text-xs text-factory-dim">Min: {item.minStock}</span>
                 </div>
-                <button onClick={() => setOrderingItem(item)} className="mt-2 w-full text-xs font-mono py-1.5 border border-factory-red/50 text-factory-red rounded hover:bg-factory-red/20 hover:shadow-[0_0_10px_rgba(239,68,68,0.3)] transition-all">
+                <button onClick={() => setOrderingItem(item)} className="mt-2 w-full text-xs font-mono py-1.5 border border-factory-red/50 text-factory-red rounded hover:bg-factory-red/20 transition-all">
                   PLACE ORDER
                 </button>
               </div>
@@ -112,101 +138,83 @@ export default function InventoryPage() {
       <div className="factory-card animate-fade-up stagger-4">
         <div className="flex items-center justify-between mb-4">
           <div className="section-title">STOCK LEVELS</div>
-          <button className="btn-secondary flex items-center gap-2 text-xs"><Download size={12} /> EXPORT</button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-factory-border">
-                {['ID', 'Name', 'Category', 'Stock', 'Min/Max', 'Stock Level', 'Unit Cost', 'Value', 'Supplier', 'Status'].map(h => (
-                  <th key={h} className="text-left py-3 px-2 font-mono text-xs text-factory-dim tracking-wider whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item, i) => {
-                const s = getStockStatus(item);
-                const pct = Math.min(100, (item.stock / item.maxStock) * 100);
-                return (
-                  <tr key={item.id} className="border-b border-factory-border/30 hover:bg-factory-border/20 transition-colors">
-                    <td className="py-3 px-2 font-mono text-xs text-factory-dim">{item.id}</td>
-                    <td className="py-3 px-2 font-medium text-factory-text whitespace-nowrap">{item.name}</td>
-                    <td className="py-3 px-2">
-                      <span className="font-mono text-xs px-2 py-0.5 bg-factory-border rounded text-factory-dim">{item.category}</span>
-                    </td>
-                    <td className="py-3 px-2 font-mono font-bold">
-                      <span className={s.color}>{item.stock} {item.unit}</span>
-                    </td>
-                    <td className="py-3 px-2 font-mono text-xs text-factory-dim">{item.minStock}/{item.maxStock}</td>
-                    <td className="py-3 px-2">
-                      <div className="flex items-center gap-2 min-w-24">
-                        <div className="flex-1 h-1.5 bg-factory-bg rounded overflow-hidden">
-                          <div className={`h-full rounded ${s.barColor}`} style={{ width: `${pct}%` }}></div>
+        {loading ? (
+          <div className="text-center py-12 text-factory-dim font-mono animate-pulse">Loading inventory data...</div>
+        ) : inventory.length === 0 ? (
+          <div className="text-center py-12 text-factory-dim font-mono">No inventory items. Click ADD ITEM to get started.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-factory-border">
+                  {['ID','Name','Category','Stock','Min/Max','Level','Unit Cost','Value','Supplier','Actions','Status'].map(h => (
+                    <th key={h} className="text-left py-3 px-2 font-mono text-xs text-factory-dim tracking-wider whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(item => {
+                  const s   = getStockStatus(item);
+                  const pct = Math.min(100, (item.stock / (item.maxStock || 1)) * 100);
+                  return (
+                    <tr key={item._id || item.itemId} className="border-b border-factory-border/30 hover:bg-factory-border/20 transition-colors">
+                      <td className="py-3 px-2 font-mono text-xs text-factory-dim">{item.itemId}</td>
+                      <td className="py-3 px-2 font-medium text-factory-text whitespace-nowrap">{item.name}</td>
+                      <td className="py-3 px-2"><span className="font-mono text-xs px-2 py-0.5 bg-factory-border rounded text-factory-dim">{item.category}</span></td>
+                      <td className="py-3 px-2 font-mono font-bold"><span className={s.color}>{item.stock} {item.unit}</span></td>
+                      <td className="py-3 px-2 font-mono text-xs text-factory-dim">{item.minStock}/{item.maxStock}</td>
+                      <td className="py-3 px-2">
+                        <div className="flex items-center gap-2 min-w-24">
+                          <div className="flex-1 h-1.5 bg-factory-bg rounded overflow-hidden">
+                            <div className={`h-full rounded ${s.barColor}`} style={{ width:`${pct}%` }} />
+                          </div>
+                          <span className="font-mono text-xs text-factory-dim w-8">{Math.round(pct)}%</span>
                         </div>
-                        <span className="font-mono text-xs text-factory-dim w-8">{Math.round(pct)}%</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 font-mono text-xs text-factory-dim">₹{item.unitCost.toLocaleString()}</td>
-                    <td className="py-3 px-2 font-mono text-xs text-factory-text">₹{(item.stock * item.unitCost).toLocaleString()}</td>
-                    <td className="py-3 px-2 text-xs text-factory-dim">{item.supplier}</td>
-                    <td className="py-3 px-2"><span className={s.badge}>{s.label}</span></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="py-3 px-2 font-mono text-xs text-factory-dim">₹{(item.unitCost||0).toLocaleString()}</td>
+                      <td className="py-3 px-2 font-mono text-xs text-factory-text">₹{(item.stock * (item.unitCost||0)).toLocaleString()}</td>
+                      <td className="py-3 px-2 text-xs text-factory-dim">{item.supplier}</td>
+                      <td className="py-3 px-2">
+                        <div className="flex gap-1">
+                          <button onClick={() => handleUpdateStock(item, 10)} className="text-xs px-2 py-1 bg-factory-green/10 border border-factory-green/30 text-factory-green rounded hover:bg-factory-green/20 font-mono">+10</button>
+                          <button onClick={() => handleUpdateStock(item, -10)} className="text-xs px-2 py-1 bg-factory-red/10 border border-factory-red/30 text-factory-red rounded hover:bg-factory-red/20 font-mono">-10</button>
+                        </div>
+                      </td>
+                      <td className="py-3 px-2"><span className={s.badge}>{s.label}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Place Order Modal */}
       {orderingItem && (
         <ModalOverlay onClose={() => setOrderingItem(null)}>
           <div className="bg-factory-panel border border-factory-accent/30 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,229,255,0.15)] relative">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-factory-accent to-factory-green"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-factory-accent to-factory-green" />
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <ShoppingCart size={18} className="text-factory-accent" />
-                    <h2 className="font-display text-xl font-bold text-factory-text">PLACE ORDER</h2>
-                  </div>
-                  <p className="font-mono text-xs text-factory-dim uppercase">{orderingItem.id} · {orderingItem.category}</p>
+                  <div className="flex items-center gap-2 mb-1"><ShoppingCart size={18} className="text-factory-accent" /><h2 className="font-display text-xl font-bold text-factory-text">PLACE ORDER</h2></div>
+                  <p className="font-mono text-xs text-factory-dim uppercase">{orderingItem.itemId} · {orderingItem.category}</p>
                 </div>
-                <button onClick={() => setOrderingItem(null)} className="text-factory-dim hover:text-factory-red transition-colors auto-blur">
-                  <X size={20} />
-                </button>
+                <button onClick={() => setOrderingItem(null)} className="text-factory-dim hover:text-factory-red transition-colors"><X size={20} /></button>
               </div>
-
-              <form onSubmit={e => { e.preventDefault(); setOrderingItem(null); alert('Order placed successfully!'); }}>
-                <div className="grid grid-cols-2 gap-x-4">
-                  <InputGroup label="Orderer Name" placeholder="Full Name" required />
-                  <InputGroup label="Phone Number" type="tel" placeholder="+91 90000 00000" required pattern="[+0-9\s\-]+" />
+              <div className="mb-4 bg-factory-bg/40 border border-factory-border/50 rounded-lg p-3">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-body text-sm text-factory-text font-medium">{orderingItem.name}</span>
+                  <span className="font-mono text-xs text-factory-accent">{orderingItem.stock} {orderingItem.unit} in stock</span>
                 </div>
-                
-                <div className="mb-4 bg-factory-bg/40 border border-factory-border/50 rounded-lg p-3">
-                  <div className="font-mono text-[10px] text-factory-dim mb-2 uppercase">Order Details</div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-body text-sm text-factory-text font-medium">{orderingItem.name}</span>
-                    <span className="font-mono text-xs text-factory-accent">{orderingItem.stock} {orderingItem.unit} in stock</span>
-                  </div>
-                  <div className="font-mono text-xs text-factory-dim">Supplier: <span className="text-factory-text">{orderingItem.supplier}</span></div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-x-4">
-                  <InputGroup label={`Quantity to Order (${orderingItem.unit})`} type="number" defaultValue={orderingItem.maxStock - orderingItem.stock} required />
-                  <InputGroup label="Expected Delivery" type="date" required />
-                </div>
-
-                <div className="mb-6">
-                  <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase tracking-wide">Additional Notes</label>
-                  <textarea rows="2" className="w-full bg-factory-bg/50 border border-factory-border rounded px-4 py-2.5 text-factory-text font-body text-sm focus:outline-none focus:border-factory-accent transition-colors resize-none"></textarea>
-                </div>
-
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => setOrderingItem(null)} className="flex-1 py-2.5 rounded font-mono text-xs font-bold text-factory-dim border border-factory-border hover:bg-factory-border/30 transition-colors">CANCEL</button>
-                  <button type="submit" className="flex-1 py-2.5 rounded font-mono text-xs font-bold bg-factory-accent/10 text-factory-accent border border-factory-accent/50 hover:bg-factory-accent hover:text-black hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all">CONFIRM ORDER</button>
-                </div>
-              </form>
+                <div className="font-mono text-xs text-factory-dim">Supplier: <span className="text-factory-text">{orderingItem.supplier}</span></div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setOrderingItem(null)} className="flex-1 py-2.5 rounded font-mono text-xs font-bold text-factory-dim border border-factory-border hover:bg-factory-border/30 transition-colors">CANCEL</button>
+                <button onClick={() => { toast.success('Order placed!'); setOrderingItem(null); }} className="flex-1 py-2.5 rounded font-mono text-xs font-bold bg-factory-accent/10 text-factory-accent border border-factory-accent/50 hover:bg-factory-accent hover:text-black transition-all">CONFIRM ORDER</button>
+              </div>
             </div>
           </div>
         </ModalOverlay>
@@ -216,62 +224,39 @@ export default function InventoryPage() {
       {isAddingItem && (
         <ModalOverlay onClose={() => setIsAddingItem(false)}>
           <div className="bg-factory-panel border border-factory-green/30 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(34,197,94,0.15)] relative">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-factory-green to-factory-accent"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-factory-green to-factory-accent" />
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Package size={18} className="text-factory-green" />
-                    <h2 className="font-display text-xl font-bold text-factory-text">ADD NEW INVENTORY</h2>
-                  </div>
-                  <p className="font-mono text-xs text-factory-dim uppercase">Register new material, tool, or spare part</p>
+                  <div className="flex items-center gap-2 mb-1"><Package size={18} className="text-factory-green" /><h2 className="font-display text-xl font-bold text-factory-text">ADD INVENTORY ITEM</h2></div>
                 </div>
-                <button onClick={() => setIsAddingItem(false)} className="text-factory-dim hover:text-factory-red transition-colors auto-blur">
-                  <X size={20} />
-                </button>
+                <button onClick={() => setIsAddingItem(false)} className="text-factory-dim hover:text-factory-red transition-colors"><X size={20} /></button>
               </div>
-
-              <form onSubmit={e => { e.preventDefault(); setIsAddingItem(false); alert('Item added successfully!'); }}>
+              <form onSubmit={handleAddItem}>
                 <div className="grid grid-cols-2 gap-x-4">
-                  <InputGroup label="Item Name" placeholder="e.g. Copper Wire Coils" required />
-                  <div className="mb-4">
-                    <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase letter-spacing-1">Category <span className="text-factory-red">*</span></label>
-                    <select className="w-full bg-factory-bg/50 border border-factory-border rounded px-4 py-2.5 text-factory-text font-body text-sm focus:outline-none focus:border-factory-green transition-colors" required>
-                      <option value="">Select Category...</option>
-                      <option value="Raw Material">Raw Material</option>
-                      <option value="Tool">Tools</option>
-                      <option value="Spare Part">Spare Parts</option>
-                      <option value="Consumable">Consumables</option>
+                  <Field label="Item ID" required><input value={form.itemId} onChange={e => setForm({...form,itemId:e.target.value})} className={inputCls} placeholder="INV001" required /></Field>
+                  <Field label="Item Name" required><input value={form.name} onChange={e => setForm({...form,name:e.target.value})} className={inputCls} placeholder="Steel Rods" required /></Field>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4">
+                  <Field label="Category">
+                    <select value={form.category} onChange={e => setForm({...form,category:e.target.value})} className={inputCls}>
+                      {['Raw Material','Consumable','Tool','Spare Part','Finished Good','Safety'].map(c => <option key={c}>{c}</option>)}
                     </select>
-                  </div>
+                  </Field>
+                  <Field label="Unit"><input value={form.unit} onChange={e => setForm({...form,unit:e.target.value})} className={inputCls} placeholder="kg" /></Field>
                 </div>
-
                 <div className="grid grid-cols-2 gap-x-4">
-                  <InputGroup label="Supplier Name" placeholder="Vendor Company" required />
-                  <InputGroup label="Supplier Phone" type="tel" placeholder="+91 90000 00000" required />
+                  <Field label="Supplier"><input value={form.supplier} onChange={e => setForm({...form,supplier:e.target.value})} className={inputCls} placeholder="Supplier name" /></Field>
+                  <Field label="Unit Cost (₹)"><input type="number" value={form.unitCost} onChange={e => setForm({...form,unitCost:+e.target.value})} className={inputCls} min="0" /></Field>
                 </div>
-
-                <div className="grid grid-cols-4 gap-x-4 border-t border-factory-border/30 pt-4 mt-2">
-                  <InputGroup label="Initial Stock" type="number" placeholder="0" required />
-                  <InputGroup label="Min Stock" type="number" placeholder="0" required />
-                  <InputGroup label="Max Stock" type="number" placeholder="0" required />
-                  <InputGroup label="Unit Cost (₹)" type="number" placeholder="0" required />
+                <div className="grid grid-cols-3 gap-x-4">
+                  <Field label="Initial Stock"><input type="number" value={form.stock} onChange={e => setForm({...form,stock:+e.target.value})} className={inputCls} min="0" /></Field>
+                  <Field label="Min Stock"><input type="number" value={form.minStock} onChange={e => setForm({...form,minStock:+e.target.value})} className={inputCls} min="0" /></Field>
+                  <Field label="Max Stock"><input type="number" value={form.maxStock} onChange={e => setForm({...form,maxStock:+e.target.value})} className={inputCls} min="0" /></Field>
                 </div>
-
-                <div className="mb-6">
-                  <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase tracking-wide">Upload Item Image (Optional)</label>
-                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-factory-border border-dashed rounded-lg cursor-pointer bg-factory-bg/30 hover:bg-factory-bg/60 transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload size={20} className="text-factory-dim mb-2" />
-                      <p className="font-body text-xs text-factory-dim"><span className="font-semibold text-factory-green">Click to upload</span> or drag and drop</p>
-                    </div>
-                    <input type="file" className="hidden" />
-                  </label>
-                </div>
-
-                <div className="flex gap-3">
+                <div className="flex gap-3 mt-2">
                   <button type="button" onClick={() => setIsAddingItem(false)} className="flex-1 py-2.5 rounded font-mono text-xs font-bold text-factory-dim border border-factory-border hover:bg-factory-border/30 transition-colors">CANCEL</button>
-                  <button type="submit" className="flex-1 py-2.5 rounded font-mono text-xs font-bold bg-factory-green/10 text-factory-green border border-factory-green/50 hover:bg-factory-green hover:text-black hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all">ADD NEW ITEM</button>
+                  <button type="submit" className="flex-1 py-2.5 rounded font-mono text-xs font-bold bg-factory-green/10 text-factory-green border border-factory-green/50 hover:bg-factory-green hover:text-black transition-all">ADD ITEM</button>
                 </div>
               </form>
             </div>

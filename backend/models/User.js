@@ -10,11 +10,11 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true, select: false },
   role: {
     type: String,
-    enum: ['Admin', 'Manager', 'Worker'],
-    default: 'Worker'
+    enum: ['Admin', 'Manager', 'Operator'],
+    default: 'Operator'
   },
   department: { type: String },
-  isActive: { type: Boolean, default: true },
+  status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
   lastLogin: { type: Date },
 }, { timestamps: true });
 

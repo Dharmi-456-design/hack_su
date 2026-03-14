@@ -3,6 +3,8 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { TrendingUp, TrendingDown, DollarSign, Target, Package, Cpu, Users } from 'lucide-react';
 import { INVENTORY, WORKERS, ANALYTICS } from '../data/dummyData';
 import { useLive } from '../context/LiveDataContext';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 
 const MONTHLY_REVENUE = [
   { month: 'Oct', revenue: 4200000, cost: 2800000, profit: 1400000 },
@@ -106,6 +108,23 @@ export default function CostRevenuePage() {
   const avgWorkerCost = 35000;
   const monthlyLabor = WORKERS.length * avgWorkerCost;
 
+  const liveRevenue = useLivestreamData(
+    MONTHLY_REVENUE,
+    {
+      revenue: { min: 2000000, max: 6000000, variation: 200000, isInt: true },
+      cost: { min: 1000000, max: 4000000, variation: 100000, isInt: true },
+    },
+    3000,
+    6
+  );
+
+  // We explicitly compute profit in the hook data, but `useLivestreamData` walks independently. 
+  // Let's ensure profit is dynamically accurate for each new frame:
+  const liveRevenueWithProfit = liveRevenue.map(d => ({
+    ...d,
+    profit: d.revenue - d.cost
+  }));
+
   return (
     <div className="space-y-6">
       <div className="animate-slide-in">
@@ -127,7 +146,10 @@ export default function CostRevenuePage() {
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,transparent,#00E5FF33,transparent)' }} />
 
         <div className="flex items-center justify-between mb-5">
-          <div className="section-title">REVENUE vs COST vs PROFIT — 6 MONTHS</div>
+          <div className="flex items-center gap-2">
+            <LiveChartIndicator />
+            <div className="section-title mb-0 relative top-[1px]">LIVE REVENUE vs COST vs PROFIT</div>
+          </div>
           {/* Updated legend – matching line styles */}
           <div style={{ display: 'flex', gap: 18 }}>
             {Object.entries(METRIC_CFG).map(([key, cfg]) => (
@@ -149,7 +171,7 @@ export default function CostRevenuePage() {
         </div>
 
         <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={MONTHLY_REVENUE} margin={{ top: 8, right: 14, left: 10, bottom: 0 }}>
+          <AreaChart data={liveRevenueWithProfit} margin={{ top: 8, right: 14, left: 10, bottom: 0 }}>
             <defs>
               {/* Revenue gradient — cyan */}
               <linearGradient id="revGrad2" x1="0" y1="0" x2="0" y2="1">
@@ -170,9 +192,10 @@ export default function CostRevenuePage() {
 
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="timeLabel"
               tick={{ fill: '#5A7A9A', fontSize: 11, fontFamily: 'Share Tech Mono' }}
               tickLine={false} axisLine={{ stroke: '#1e293b' }}
+              minTickGap={20}
             />
             <YAxis
               tickFormatter={v => `₹${(v / 100000).toFixed(0)}L`}
@@ -182,6 +205,7 @@ export default function CostRevenuePage() {
             <Tooltip
               content={<FinancialTooltip />}
               cursor={{ stroke: '#ffffff18', strokeWidth: 1, strokeDasharray: '4 4' }}
+              isAnimationActive={false}
             />
 
             {/* ① Revenue — solid cyan line + gradient fill */}
@@ -191,6 +215,7 @@ export default function CostRevenuePage() {
               fill="url(#revGrad2)"
               name="Revenue"
               dot={false}
+              isAnimationActive={false}
               activeDot={{ r: 5, fill: '#00E5FF', stroke: '#020617', strokeWidth: 2 }}
             />
 
@@ -202,6 +227,7 @@ export default function CostRevenuePage() {
               fill="none"
               name="Cost"
               dot={false}
+              isAnimationActive={false}
               activeDot={{ r: 5, fill: '#FF4D4D', stroke: '#020617', strokeWidth: 2 }}
             />
 
@@ -212,6 +238,7 @@ export default function CostRevenuePage() {
               fill="url(#profGrad2)"
               name="Profit"
               dot={false}
+              isAnimationActive={false}
               activeDot={{ r: 5, fill: '#00FF9C', stroke: '#020617', strokeWidth: 2 }}
               style={{ filter: 'drop-shadow(0 0 4px #00FF9C66)' }}
             />
@@ -220,11 +247,11 @@ export default function CostRevenuePage() {
 
         {/* Month summary bar */}
         <div style={{ display: 'flex', gap: 0, marginTop: 12, borderTop: '1px solid #1e293b', paddingTop: 12 }}>
-          {MONTHLY_REVENUE.map(d => {
+          {liveRevenueWithProfit.map(d => {
             const margin = ((d.profit / d.revenue) * 100).toFixed(0);
             return (
-              <div key={d.month} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#64748b' }}>{d.month}</div>
+              <div key={d.timeLabel} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#64748b' }}>{d.timeLabel}</div>
                 <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 13, fontWeight: 700, color: '#00FF9C', marginTop: 2 }}>{margin}%</div>
                 <div style={{ fontSize: 9, color: '#475569', fontFamily: 'monospace' }}>margin</div>
               </div>

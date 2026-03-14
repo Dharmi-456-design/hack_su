@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLive } from '../context/LiveDataContext';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, LineChart, Line, Cell, ReferenceLine,
@@ -126,8 +128,11 @@ const SimpleTooltip = ({ active, payload, label }) => {
 
 /* ═══════════════════ MAIN COMPONENT ═══════════════════ */
 export default function EnergyPage() {
-  const { machines: liveMachines } = useLive();
-  const machines = liveMachines?.length ? liveMachines : DEMO_MACHINES;
+  const { machines: liveMachinesContext } = useLive();
+  const machines = liveMachinesContext?.length ? liveMachinesContext : DEMO_MACHINES;
+
+  const liveHourly = useLivestreamData(HOURLY_HISTORY, { consumed: { min: 10, max: 60, variation: 5 } }, 2500, 24);
+  const liveWeekly = useLivestreamData(WEEKLY, { kwh: { min: 400, max: 600, variation: 30, isInt: true } }, 3000, 7);
 
   // ── Machine energy data
   const machineEnergy = machines.map(m => ({
@@ -443,9 +448,12 @@ export default function EnergyPage() {
       {/* ══ EXISTING: 24h + Weekly charts ══ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="factory-card animate-fade-up stagger-3">
-          <div className="section-title mb-4">24-HOUR ENERGY CONSUMPTION (kWh)</div>
+          <div className="flex items-center gap-2 mb-4">
+            <LiveChartIndicator />
+            <div className="section-title mb-0 relative top-[1px]">LIVE 24-HOUR CONSUMPTION (kWh)</div>
+          </div>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={HOURLY_HISTORY} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={liveHourly} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="energyGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="#00D4FF" stopOpacity={0.2} />
@@ -453,23 +461,26 @@ export default function EnergyPage() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-              <XAxis dataKey="hour" tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} interval={3} />
+              <XAxis dataKey="timeLabel" tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} minTickGap={20} />
               <YAxis tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} />
-              <Tooltip content={<SimpleTooltip />} />
-              <Area type="monotone" dataKey="consumed" stroke="#00D4FF" fill="url(#energyGrad)" strokeWidth={2} name="kWh" />
+              <Tooltip content={<SimpleTooltip />} isAnimationActive={false} />
+              <Area type="monotone" dataKey="consumed" stroke="#00D4FF" fill="url(#energyGrad)" strokeWidth={2} name="kWh" isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         <div className="factory-card animate-fade-up stagger-4">
-          <div className="section-title mb-4">WEEKLY CONSUMPTION (kWh)</div>
+          <div className="flex items-center gap-2 mb-4">
+            <LiveChartIndicator />
+            <div className="section-title mb-0 relative top-[1px]">LIVE WEEKLY CONSUMPTION (kWh)</div>
+          </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={WEEKLY} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <BarChart data={liveWeekly} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
               <XAxis dataKey="day" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
               <YAxis tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-              <Tooltip content={<SimpleTooltip />} />
-              <Bar dataKey="kwh" fill="#00FF94" fillOpacity={0.7} name="kWh" radius={[3, 3, 0, 0]} />
+              <Tooltip content={<SimpleTooltip />} isAnimationActive={false} />
+              <Bar dataKey="kwh" fill="#00FF94" fillOpacity={0.7} name="kWh" radius={[3, 3, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

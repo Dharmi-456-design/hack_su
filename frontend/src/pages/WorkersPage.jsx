@@ -4,6 +4,8 @@ import { useApi } from '../hooks/useApi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis } from 'recharts';
 import { User, Star, CheckCircle, Clock, Shield, Cpu, Search, Plus, X, Zap, Activity, AlertTriangle, TrendingUp, Award, Thermometer } from 'lucide-react';
 import { WORKER_PERFORMANCE } from '../data/dummyData';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 import toast from 'react-hot-toast';
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -443,6 +445,18 @@ export default function WorkersPage() {
     return matchSearch && matchDept;
   });
 
+  const workerPerformanceLive = useLivestreamData(
+    WORKER_PERFORMANCE,
+    {
+      arjun: { min: 70, max: 100, variation: 3 },
+      vikram: { min: 75, max: 100, variation: 2.5 },
+      priya: { min: 65, max: 98, variation: 4 },
+      sneha: { min: 70, max: 95, variation: 3.5 }
+    },
+    3000,
+    15
+  );
+
   const avgPerf = workers.length
     ? Math.round(workers.reduce((s, w) => s + (w.performance?.score ?? w.performance ?? 0), 0) / workers.length)
     : 0;
@@ -479,18 +493,21 @@ export default function WorkersPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-up stagger-2">
         <div className="lg:col-span-2 factory-card flex flex-col justify-center h-full">
-          <div className="section-title mb-4">4-WEEK PERFORMANCE TREND</div>
+          <div className="flex items-center gap-2 mb-4">
+            <LiveChartIndicator />
+            <div className="section-title mb-0 relative top-[1px]">LIVE PERFORMANCE TREND</div>
+          </div>
           <div className="flex-1 min-h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={WORKER_PERFORMANCE} margin={{ top:5, right:10, left:-20, bottom:0 }}>
+              <LineChart data={workerPerformanceLive} margin={{ top:5, right:10, left:-20, bottom:0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-                <XAxis dataKey="week" tick={{ fill:'#5A7A9A', fontSize:10 }} />
-                <YAxis domain={[75, 100]} tick={{ fill:'#5A7A9A', fontSize:10 }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="arjun"  stroke="#00D4FF" strokeWidth={2} dot={false} name="Arjun" />
-                <Line type="monotone" dataKey="vikram" stroke="#00FF94" strokeWidth={2} dot={false} name="Vikram" />
-                <Line type="monotone" dataKey="priya"  stroke="#FFB800" strokeWidth={2} dot={false} name="Priya" />
-                <Line type="monotone" dataKey="sneha"  stroke="#FF3860" strokeWidth={2} dot={false} name="Sneha" />
+                <XAxis dataKey="timeLabel" tick={{ fill:'#5A7A9A', fontSize:10 }} minTickGap={20} />
+                <YAxis domain={[60, 100]} tick={{ fill:'#5A7A9A', fontSize:10 }} />
+                <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
+                <Line type="monotone" dataKey="arjun"  stroke="#00D4FF" strokeWidth={2} dot={false} name="Arjun" isAnimationActive={false} />
+                <Line type="monotone" dataKey="vikram" stroke="#00FF94" strokeWidth={2} dot={false} name="Vikram" isAnimationActive={false} />
+                <Line type="monotone" dataKey="priya"  stroke="#FFB800" strokeWidth={2} dot={false} name="Priya" isAnimationActive={false} />
+                <Line type="monotone" dataKey="sneha"  stroke="#FF3860" strokeWidth={2} dot={false} name="Sneha" isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

@@ -1,5 +1,8 @@
 import React from 'react';
 import { ANALYTICS, MONTHLY_PERFORMANCE, DEPARTMENT_STATS, MACHINES, WORKERS } from '../data/dummyData';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import { useLiveEntities } from '../hooks/useLiveEntities';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, ScatterChart, Scatter } from 'recharts';
 import { LineChart, TrendingUp } from 'lucide-react';
 
@@ -37,8 +40,13 @@ function GaugeChart({ value, max = 100, label, color = '#00D4FF' }) {
 }
 
 export default function AnalyticsPage() {
-  const avgMachineEff = Math.round(MACHINES.filter(m => m.status !== 'offline').reduce((s, m) => s + m.efficiency, 0) / MACHINES.filter(m => m.status !== 'offline').length);
-  const avgWorkerPerf = Math.round(WORKERS.reduce((s, w) => s + w.performance, 0) / WORKERS.length);
+  const liveMachines = useLiveEntities(MACHINES, { efficiency: { min: 40, max: 100, variation: 2, isInt: true } }, 2500);
+  const liveWorkers = useLiveEntities(WORKERS, { performance: { min: 70, max: 100, variation: 2, isInt: true } }, 2500);
+  const liveDepts = useLiveEntities(DEPARTMENT_STATS, { efficiency: { min: 70, max: 100, variation: 3, isInt: true } }, 3000);
+  const liveMonthly = useLivestreamData(MONTHLY_PERFORMANCE, { production: { min: 12000, max: 16000, variation: 50, isInt: true } }, 3000, 6);
+
+  const avgMachineEff = Math.round(liveMachines.filter(m => m.status !== 'offline').reduce((s, m) => s + m.efficiency, 0) / Math.max(1, liveMachines.filter(m => m.status !== 'offline').length));
+  const avgWorkerPerf = Math.round(liveWorkers.reduce((s, w) => s + w.performance, 0) / Math.max(1, liveWorkers.length));
   const productionEff = Math.round((ANALYTICS.productionToday / ANALYTICS.productionTarget) * 100);
 
   return (
@@ -64,9 +72,12 @@ export default function AnalyticsPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="factory-card animate-fade-up stagger-2">
-          <div className="section-title mb-4">6-MONTH PRODUCTION & EFFICIENCY</div>
+          <div className="flex items-center gap-2 mb-4">
+            <LiveChartIndicator />
+            <div className="section-title mb-0 relative top-[1px]">LIVE PRODUCTION & EFFICIENCY</div>
+          </div>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={MONTHLY_PERFORMANCE} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={liveMonthly} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="prodGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.2} />
@@ -74,22 +85,25 @@ export default function AnalyticsPage() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-              <XAxis dataKey="month" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
+              <XAxis dataKey="timeLabel" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} minTickGap={20} />
               <YAxis tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="production" stroke="#00D4FF" fill="url(#prodGrad)" strokeWidth={2} name="Production" />
+              <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
+              <Area type="monotone" dataKey="production" stroke="#00D4FF" fill="url(#prodGrad)" strokeWidth={2} name="Production" isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         <div className="factory-card animate-fade-up stagger-3">
-          <div className="section-title mb-4">DEPARTMENT PERFORMANCE RADAR</div>
+          <div className="flex items-center gap-2 mb-4">
+            <LiveChartIndicator />
+            <div className="section-title mb-0 relative top-[1px]">LIVE DEPARTMENT RADAR</div>
+          </div>
           <ResponsiveContainer width="100%" height={220}>
-            <RadarChart data={DEPARTMENT_STATS}>
+            <RadarChart data={liveDepts}>
               <PolarGrid stroke="#1E3A5F" />
               <PolarAngleAxis dataKey="dept" tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} />
-              <Radar name="Efficiency" dataKey="efficiency" stroke="#00FF94" fill="#00FF94" fillOpacity={0.1} strokeWidth={2} />
-              <Tooltip content={<CustomTooltip />} />
+              <Radar name="Efficiency" dataKey="efficiency" stroke="#00FF94" fill="#00FF94" fillOpacity={0.1} strokeWidth={2} isAnimationActive={false} />
+              <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
@@ -97,9 +111,12 @@ export default function AnalyticsPage() {
 
       {/* Machine efficiency ranking */}
       <div className="factory-card animate-fade-up stagger-4">
-        <div className="section-title mb-4">MACHINE EFFICIENCY RANKING</div>
+        <div className="flex items-center gap-2 mb-4">
+          <LiveChartIndicator />
+          <div className="section-title mb-0 relative top-[1px]">LIVE MACHINE EFFICIENCY RANKING</div>
+        </div>
         <div className="space-y-3">
-          {[...MACHINES].sort((a, b) => b.efficiency - a.efficiency).map((m, i) => (
+          {[...liveMachines].sort((a, b) => b.efficiency - a.efficiency).map((m, i) => (
             <div key={m.id} className="flex items-center gap-4">
               <div className="font-display text-lg font-bold text-factory-dim w-6 text-center">{i + 1}</div>
               <div className="flex-1 min-w-0">
@@ -124,14 +141,17 @@ export default function AnalyticsPage() {
 
       {/* Worker productivity ranking */}
       <div className="factory-card animate-fade-up stagger-5">
-        <div className="section-title mb-4">WORKER PRODUCTIVITY RANKING</div>
+        <div className="flex items-center gap-2 mb-4">
+          <LiveChartIndicator />
+          <div className="section-title mb-0 relative top-[1px]">LIVE WORKER PRODUCTIVITY RANKING</div>
+        </div>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={[...WORKERS].sort((a, b) => b.performance - a.performance)} layout="vertical" margin={{ top: 0, right: 20, left: 80, bottom: 0 }}>
+          <BarChart data={[...liveWorkers].sort((a, b) => b.performance - a.performance)} layout="vertical" margin={{ top: 0, right: 20, left: 80, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
             <YAxis dataKey="name" type="category" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} width={80} />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="performance" fill="#00D4FF" fillOpacity={0.7} name="Performance %" radius={[0, 3, 3, 0]} />
+            <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
+            <Bar dataKey="performance" fill="#00D4FF" fillOpacity={0.7} name="Performance %" radius={[0, 3, 3, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ANALYTICS, MACHINES, ALERTS, PRODUCTION_DATA, MONTHLY_PERFORMANCE, DEPARTMENT_STATS } from '../data/dummyData';
 import { useLive } from '../context/LiveDataContext';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid
@@ -202,6 +204,26 @@ export default function DashboardPage() {
   const [time, setTime] = useState(new Date());
   const { machines, alerts, production, analytics } = useLive();
 
+  const productionLive = useLivestreamData(
+    PRODUCTION_DATA,
+    {
+      target: { min: 480, max: 520, variation: 5 },
+      actual: { min: 400, max: 530, variation: 15 }
+    },
+    2000,
+    15
+  );
+
+  const performanceLive = useLivestreamData(
+    MONTHLY_PERFORMANCE,
+    {
+      production: { min: 12000, max: 15500, variation: 50 },
+      efficiency: { min: 80, max: 100, variation: 2 }
+    },
+    3000,
+    12
+  );
+
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
@@ -291,14 +313,15 @@ export default function DashboardPage() {
         <SectionCard>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
+              <LiveChartIndicator />
               <SectionTitle>Production Overview</SectionTitle>
               {/* Chart subtitle — Inter */}
-              <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -8 }}>March 2026 — Daily Output vs Target</div>
+              <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -8 }}>Live Output Tracking vs Target</div>
             </div>
             <ViewAll to="/production" />
           </div>
           <ResponsiveContainer width="100%" height={210}>
-            <AreaChart data={PRODUCTION_DATA} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+            <AreaChart data={productionLive} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gTarget" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor={T.accent} stopOpacity={0.15} />
@@ -310,11 +333,12 @@ export default function DashboardPage() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="date" tick={axisStyle} tickLine={false} axisLine={false} dy={8} />
+              <XAxis dataKey="timeLabel" tick={axisStyle} tickLine={false} axisLine={false} dy={8} minTickGap={20} />
               <YAxis tick={axisStyle} tickLine={false} axisLine={false} />
-              <Tooltip content={<ModernTooltip />} cursor={{ stroke: `${T.accent}30`, strokeWidth: 2, strokeDasharray: '4 4' }} />
-              <Area type="monotone" dataKey="target" stroke={T.accent} strokeWidth={1.5} strokeDasharray="6 3" fill="url(#gTarget)" name="Target" dot={false} />
+              <Tooltip content={<ModernTooltip />} cursor={{ stroke: `${T.accent}30`, strokeWidth: 2, strokeDasharray: '4 4' }} isAnimationActive={false} />
+              <Area type="monotone" dataKey="target" stroke={T.accent} strokeWidth={1.5} strokeDasharray="6 3" fill="url(#gTarget)" name="Target" dot={false} isAnimationActive={false} />
               <Area type="monotone" dataKey="actual" stroke={T.green} strokeWidth={2.5} fill="url(#gActual)" name="Actual" dot={false}
+                isAnimationActive={false}
                 activeDot={{ r: 6, fill: T.green, stroke: T.bg, strokeWidth: 2, filter: `drop-shadow(0 0 8px ${T.green})` }} />
             </AreaChart>
           </ResponsiveContainer>
@@ -394,7 +418,8 @@ export default function DashboardPage() {
       <SectionCard>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
-            <SectionTitle>6-Month Production Trend</SectionTitle>
+            <LiveChartIndicator />
+            <SectionTitle>Live Production Trend</SectionTitle>
             {/* Subtitle — Inter */}
             <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -8 }}>Production units vs efficiency %</div>
           </div>
@@ -408,15 +433,17 @@ export default function DashboardPage() {
           </div>
         </div>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={MONTHLY_PERFORMANCE} margin={{ top: 5, right: 10, left: -20, bottom: 0 }} barGap={4}>
+          <BarChart data={performanceLive} margin={{ top: 5, right: 10, left: -20, bottom: 0 }} barGap={4}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-            <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} dy={8} />
+            <XAxis dataKey="timeLabel" tick={axisStyle} tickLine={false} axisLine={false} dy={8} minTickGap={20} />
             <YAxis yAxisId="left"  tick={axisStyle} tickLine={false} axisLine={false} />
             <YAxis yAxisId="right" orientation="right" tick={axisStyle} tickLine={false} axisLine={false} />
-            <Tooltip content={<ModernTooltip />} cursor={{ fill: 'rgba(0,229,255,0.04)' }} />
+            <Tooltip content={<ModernTooltip />} cursor={{ fill: 'rgba(0,229,255,0.04)' }} isAnimationActive={false} />
             <Bar yAxisId="left"  dataKey="production" fill={T.accent} fillOpacity={0.85} name="Production"   radius={[6, 6, 0, 0]}
+              isAnimationActive={false}
               activeBar={{ fill: T.accent, fillOpacity: 1, stroke: T.accent, strokeWidth: 1, filter: `drop-shadow(0 0 12px ${T.accent})` }} />
             <Bar yAxisId="right" dataKey="efficiency"  fill={T.green}  fillOpacity={0.85} name="Efficiency %"  radius={[6, 6, 0, 0]}
+              isAnimationActive={false}
               activeBar={{ fill: T.green, fillOpacity: 1, stroke: T.green, strokeWidth: 1, filter: `drop-shadow(0 0 12px ${T.green})` }} />
           </BarChart>
         </ResponsiveContainer>

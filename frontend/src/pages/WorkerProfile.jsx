@@ -1,6 +1,9 @@
 import React, { useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis } from 'recharts';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import { useLiveEntities } from '../hooks/useLiveEntities';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 import { User, Star, CheckCircle, Clock, Shield, Cpu, ArrowLeft, Activity, TrendingUp } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -56,6 +59,19 @@ export default function WorkerProfile() {
       { week: 'Week 4', score: perf },
     ];
   }, [perf]);
+
+  const liveTrendData = useLivestreamData(
+    trendData,
+    { score: { min: Math.max(40, perf - 20), max: 100, variation: 5 } },
+    3000,
+    10
+  );
+
+  const liveRadarData = useLiveEntities(
+    radarData,
+    { value: { min: 40, max: 100, variation: 3, isInt: true } },
+    2500
+  );
 
   const isTopPerformer = perf >= 90;
 
@@ -195,30 +211,36 @@ export default function WorkerProfile() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="factory-card flex flex-col h-full !mt-0 lg:!mt-0">
-              <div className="section-title mb-4 flex items-center gap-2"><TrendingUp size={16} className="text-[#00D4FF]"/> EFFICIENCY TREND</div>
+              <div className="flex items-center gap-2 mb-4">
+                <LiveChartIndicator />
+                <div className="section-title mb-0 relative top-[1px] flex items-center gap-2"><TrendingUp size={16} className="text-[#00D4FF]"/> LIVE EFFICIENCY TREND</div>
+              </div>
               <div className="flex-1 min-h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData} margin={{ top:5, right:10, left:-20, bottom:0 }}>
+                  <LineChart data={liveTrendData} margin={{ top:5, right:10, left:-20, bottom:0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-                    <XAxis dataKey="week" tick={{ fill:'#5A7A9A', fontSize:10 }} />
+                    <XAxis dataKey="timeLabel" tick={{ fill:'#5A7A9A', fontSize:10 }} minTickGap={20} />
                     <YAxis domain={[40, 100]} tick={{ fill:'#5A7A9A', fontSize:10 }} />
-                    <RechartsTooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="score" stroke="#00D4FF" strokeWidth={3} dot={{ fill: '#00D4FF', r: 4 }} activeDot={{ r: 6 }} name="Efficiency %" />
+                    <RechartsTooltip content={<CustomTooltip />} isAnimationActive={false} />
+                    <Line type="monotone" dataKey="score" stroke="#00D4FF" strokeWidth={3} dot={{ fill: '#00D4FF', r: 4 }} activeDot={{ r: 6 }} name="Efficiency %" isAnimationActive={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             <div className="factory-card flex flex-col h-full !mt-0">
-              <div className="section-title mb-4 flex items-center gap-2"><Activity size={16} className="text-[#00D4FF]"/> SKILL ANALYSIS RADAR</div>
+              <div className="flex items-center gap-2 mb-4">
+                <LiveChartIndicator />
+                <div className="section-title mb-0 relative top-[1px] flex items-center gap-2"><Activity size={16} className="text-[#00D4FF]"/> LIVE SKILL ANALYSIS RADAR</div>
+              </div>
               <div className="flex-1 min-h-[220px] relative">
                 <div className="absolute inset-0 bg-factory-accent/5 rounded-full blur-2xl opacity-50 scale-75"></div>
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData} outerRadius="70%">
+                  <RadarChart data={liveRadarData} outerRadius="70%">
                     <PolarGrid stroke="#1E3A5F" />
                     <PolarAngleAxis dataKey="skill" tick={{ fill:'#5A7A9A', fontSize:10 }} />
-                    <Radar name="Score" dataKey="value" stroke="#00D4FF" fill="#00D4FF" fillOpacity={0.2} strokeWidth={2} />
-                    <RechartsTooltip content={<CustomTooltip />} />
+                    <Radar name="Score" dataKey="value" stroke="#00D4FF" fill="#00D4FF" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} />
+                    <RechartsTooltip content={<CustomTooltip />} isAnimationActive={false} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>

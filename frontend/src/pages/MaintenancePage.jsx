@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { MACHINE_HISTORY } from '../data/dummyData';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Wrench, Brain, Clock, CheckCircle, CalendarPlus, ClipboardList, X } from 'lucide-react';
 
@@ -75,6 +77,16 @@ export default function MaintenancePage() {
   });
 
   const { data: machines, loading } = useApi('/machines');
+
+  const liveHistory = useLivestreamData(
+    MACHINE_HISTORY,
+    {
+      temperature: { min: 60, max: 110, variation: 2.5 },
+      vibration: { min: 0.1, max: 3.5, variation: 0.2 }
+    },
+    2000,
+    20
+  );
 
   const machinesWithRisk = machines.map(m => ({ ...m, riskScore: predictFailure(m) }))
     .sort((a, b) => b.riskScore - a.riskScore);
@@ -239,24 +251,27 @@ export default function MaintenancePage() {
               {isSelected && (
                 <div className="mt-4 pt-4 border-t border-factory-border" onClick={e => e.stopPropagation()}>
                   <div className="flex justify-between items-center mb-3">
-                    <div className="section-title mb-0">24-HOUR SENSOR HISTORY</div>
+                    <div className="flex items-center gap-2">
+                      <LiveChartIndicator />
+                      <div className="section-title mb-0 relative top-[1px]">LIVE SENSOR STREAM</div>
+                    </div>
                     <div className="flex gap-4">
                       <div className="flex items-center gap-2"><div style={{ width:10, height:3, background:'#EF4444', borderRadius:2 }} /><span style={{ fontSize:10, color:'#64748b' }}>Temperature</span></div>
                       <div className="flex items-center gap-2"><div style={{ width:10, height:3, background:'#22C55E', borderRadius:2 }} /><span style={{ fontSize:10, color:'#64748b' }}>Vibration</span></div>
                     </div>
                   </div>
                   <ResponsiveContainer width="100%" height={150}>
-                    <AreaChart data={MACHINE_HISTORY} margin={{ top:5, right:10, left:-20, bottom:0 }}>
+                    <AreaChart data={liveHistory} margin={{ top:5, right:10, left:-20, bottom:0 }}>
                       <defs>
                         <linearGradient id={`gTemp-${m._id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#EF4444" stopOpacity={0.25} /><stop offset="95%" stopColor="#EF4444" stopOpacity={0} /></linearGradient>
                         <linearGradient id={`gVib-${m._id}`}  x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22C55E" stopOpacity={0.25} /><stop offset="95%" stopColor="#22C55E" stopOpacity={0} /></linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                      <XAxis dataKey="hour" tick={{ fill:'#64748b', fontSize:10 }} tickLine={false} axisLine={false} interval={4} dy={5} />
+                      <XAxis dataKey="timeLabel" tick={{ fill:'#64748b', fontSize:10 }} tickLine={false} axisLine={false} minTickGap={20} dy={5} />
                       <YAxis tick={{ fill:'#64748b', fontSize:10 }} tickLine={false} axisLine={false} />
-                      <Tooltip content={<CustomTooltip />} cursor={{ stroke:'#00E5FF', strokeWidth:1, strokeDasharray:'4 4' }} />
-                      <Area type="monotone" dataKey="temperature" stroke="#EF4444" strokeWidth={2} fill={`url(#gTemp-${m._id})`} name="Temperature" dot={false} activeDot={{ r:5, fill:'#EF4444', stroke:'#020617', strokeWidth:2 }} />
-                      <Area type="monotone" dataKey="vibration"   stroke="#22C55E" strokeWidth={2} fill={`url(#gVib-${m._id})`}  name="Vibration"   dot={false} activeDot={{ r:5, fill:'#22C55E', stroke:'#020617', strokeWidth:2 }} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke:'#00E5FF', strokeWidth:1, strokeDasharray:'4 4' }} isAnimationActive={false} />
+                      <Area type="monotone" dataKey="temperature" stroke="#EF4444" strokeWidth={2} fill={`url(#gTemp-${m._id})`} name="Temperature" dot={false} isAnimationActive={false} activeDot={{ r:5, fill:'#EF4444', stroke:'#020617', strokeWidth:2 }} />
+                      <Area type="monotone" dataKey="vibration"   stroke="#22C55E" strokeWidth={2} fill={`url(#gVib-${m._id})`}  name="Vibration"   dot={false} isAnimationActive={false} activeDot={{ r:5, fill:'#22C55E', stroke:'#020617', strokeWidth:2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                   <button

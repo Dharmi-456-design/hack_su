@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { PRODUCTION_DATA, PRODUCTION_CATEGORIES, MONTHLY_PERFORMANCE } from '../data/dummyData';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Sector, Rectangle } from 'recharts';
 import { TrendingUp, Target, CheckCircle, BarChart3, X as CloseIcon } from 'lucide-react';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 
 const COLORS = ['#2563EB', '#22C55E', '#6366F1', '#14B8A6', '#F59E0B', '#EF4444'];
 
@@ -71,10 +73,21 @@ export default function ProductionPage() {
   const [activeIndex, setActiveIndex] = useState(null);
   const [selectedPie, setSelectedPie] = useState(null);
 
-  const todayData = PRODUCTION_DATA[PRODUCTION_DATA.length - 1];
-  const weekTotal = PRODUCTION_DATA.reduce((s, d) => s + d.actual, 0);
-  const weekTarget = PRODUCTION_DATA.reduce((s, d) => s + d.target, 0);
-  const avgEfficiency = (PRODUCTION_DATA.reduce((s, d) => s + d.efficiency, 0) / PRODUCTION_DATA.length).toFixed(1);
+  const productionLive = useLivestreamData(
+    PRODUCTION_DATA,
+    {
+      target: { min: 480, max: 520, variation: 5 },
+      actual: { min: 400, max: 530, variation: 15 },
+      efficiency: { min: 80, max: 105, variation: 2 }
+    },
+    2000,
+    15
+  );
+
+  const todayData = productionLive[productionLive.length - 1] || PRODUCTION_DATA[PRODUCTION_DATA.length - 1];
+  const weekTotal = productionLive.reduce((s, d) => s + d.actual, 0);
+  const weekTarget = productionLive.reduce((s, d) => s + d.target, 0);
+  const avgEfficiency = (productionLive.reduce((s, d) => s + d.efficiency, 0) / (productionLive.length || 1)).toFixed(1);
 
   const onPieClick = (data, index) => {
     setActiveIndex(index);
@@ -110,15 +123,18 @@ export default function ProductionPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 factory-card animate-fade-up stagger-2">
-          <div className="section-title mb-4">DAILY PRODUCTION — TARGET vs ACTUAL (MARCH 2026)</div>
+          <div className="flex items-center gap-2 mb-4">
+            <LiveChartIndicator />
+            <div className="section-title mb-0 relative top-[1px]">LIVE PRODUCTION TRACKING</div>
+          </div>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={PRODUCTION_DATA} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <BarChart data={productionLive} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-              <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10, fontFamily: "'Inter', sans-serif" }} tickLine={false} axisLine={false} dy={5} />
+              <XAxis dataKey="timeLabel" tick={{ fill: '#64748b', fontSize: 10, fontFamily: "'Inter', sans-serif" }} tickLine={false} axisLine={false} dy={5} minTickGap={20} />
               <YAxis tick={{ fill: '#64748b', fontSize: 10, fontFamily: "'Inter', sans-serif" }} tickLine={false} axisLine={false} />
-              <Tooltip content={<ModernTooltip />} cursor={{ fill: '#1e293b', opacity: 0.4 }} />
-              <Bar dataKey="target" fill="#2563EB" fillOpacity={0.4} name="Target" radius={[4, 4, 0, 0]} activeBar={<Rectangle fill="#2563EB" fillOpacity={0.8} stroke="#2563EB" strokeWidth={1} style={{ filter: 'drop-shadow(0 0 6px #2563EBAA)' }}/>} />
-              <Bar dataKey="actual" fill="#22C55E" fillOpacity={0.9} name="Actual" radius={[4, 4, 0, 0]} activeBar={<Rectangle fill="#22C55E" fillOpacity={1} stroke="#22C55E" strokeWidth={1} style={{ filter: 'drop-shadow(0 0 6px #22C55EAA)' }}/>} />
+              <Tooltip content={<ModernTooltip />} cursor={{ fill: '#1e293b', opacity: 0.4 }} isAnimationActive={false} />
+              <Bar dataKey="target" fill="#2563EB" fillOpacity={0.4} name="Target" radius={[4, 4, 0, 0]} isAnimationActive={false} activeBar={<Rectangle fill="#2563EB" fillOpacity={0.8} stroke="#2563EB" strokeWidth={1} style={{ filter: 'drop-shadow(0 0 6px #2563EBAA)' }}/>} />
+              <Bar dataKey="actual" fill="#22C55E" fillOpacity={0.9} name="Actual" radius={[4, 4, 0, 0]} isAnimationActive={false} activeBar={<Rectangle fill="#22C55E" fillOpacity={1} stroke="#22C55E" strokeWidth={1} style={{ filter: 'drop-shadow(0 0 6px #22C55EAA)' }}/>} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -200,14 +216,17 @@ export default function ProductionPage() {
 
       {/* Efficiency trend */}
       <div className="factory-card animate-fade-up stagger-4">
-        <div className="section-title mb-4">DAILY EFFICIENCY TREND (%)</div>
+        <div className="flex items-center gap-2 mb-4">
+          <LiveChartIndicator />
+          <div className="section-title mb-0 relative top-[1px]">LIVE EFFICIENCY TREND (%)</div>
+        </div>
         <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={PRODUCTION_DATA} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+          <LineChart data={productionLive} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-            <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10, fontFamily: "'Inter', sans-serif" }} tickLine={false} axisLine={false} dy={5} />
+            <XAxis dataKey="timeLabel" tick={{ fill: '#64748b', fontSize: 10, fontFamily: "'Inter', sans-serif" }} tickLine={false} axisLine={false} dy={5} minTickGap={20} />
             <YAxis domain={[80, 110]} tick={{ fill: '#64748b', fontSize: 10, fontFamily: "'Inter', sans-serif" }} tickLine={false} axisLine={false} />
-            <Tooltip content={<ModernTooltip />} cursor={{ stroke: '#6366F1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-            <Line type="monotone" dataKey="efficiency" stroke="#6366F1" strokeWidth={3} dot={{ fill: '#6366F1', r: 4, stroke: '#020617', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#6366F1', stroke: '#020617', strokeWidth: 2, filter: 'drop-shadow(0 0 8px #6366F1AA)' }} name="Efficiency %" />
+            <Tooltip content={<ModernTooltip />} cursor={{ stroke: '#6366F1', strokeWidth: 1, strokeDasharray: '4 4' }} isAnimationActive={false} />
+            <Line type="monotone" dataKey="efficiency" stroke="#6366F1" strokeWidth={3} isAnimationActive={false} dot={{ fill: '#6366F1', r: 4, stroke: '#020617', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#6366F1', stroke: '#020617', strokeWidth: 2, filter: 'drop-shadow(0 0 8px #6366F1AA)' }} name="Efficiency %" />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -225,12 +244,12 @@ export default function ProductionPage() {
               </tr>
             </thead>
             <tbody>
-              {PRODUCTION_DATA.map(d => {
-                const variance = d.actual - d.target;
+              {productionLive.map((d, i) => {
+                const variance = Math.round(d.actual - d.target);
                 const isAbove = variance >= 0;
                 return (
-                  <tr key={d.date}>
-                    <td>{d.date}</td>
+                  <tr key={d.timeLabel + i}>
+                    <td>{d.timeLabel}</td>
                     <td>{d.target}</td>
                     <td className={`font-bold ${isAbove ? 'text-factory-green' : 'text-factory-amber'}`}>{d.actual}</td>
                     <td className={isAbove ? 'text-factory-green' : 'text-factory-red'}>{isAbove ? '+' : ''}{variance}</td>

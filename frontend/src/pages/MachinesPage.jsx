@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 import { useLive } from '../context/LiveDataContext';
 import { MACHINE_HISTORY } from '../data/dummyData';
+import { useLivestreamData } from '../hooks/useLivestreamData';
+import LiveChartIndicator from '../components/common/LiveChartIndicator';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Cpu, Thermometer, Activity, Clock, MapPin, Search } from 'lucide-react';
 
@@ -47,6 +49,16 @@ function MachineDetail({ machine, onClose }) {
   const rt   = machine.sensors?.runtime    ?? machine.runtime    ?? 0;
   const s    = statusConfig[machine.status] || statusConfig.offline;
 
+  const machineHistoryLive = useLivestreamData(
+    MACHINE_HISTORY,
+    {
+      temperature: { min: 60, max: 110, variation: 2.5 },
+      vibration: { min: 0.1, max: 3.5, variation: 0.2 }
+    },
+    2000,
+    20
+  );
+
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="factory-card w-full max-w-2xl max-h-screen overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -79,9 +91,12 @@ function MachineDetail({ machine, onClose }) {
         </div>
 
         <div className="mb-6">
-          <div className="section-title mb-3">24-HOUR SENSOR DATA</div>
+          <div className="flex items-center gap-2 mb-3">
+            <LiveChartIndicator />
+            <div className="section-title mb-0 relative top-[1px]">LIVE SENSOR STREAM</div>
+          </div>
           <ResponsiveContainer width="100%" height={160}>
-            <AreaChart data={MACHINE_HISTORY} margin={{ top:5, right:10, left:-20, bottom:0 }}>
+            <AreaChart data={machineHistoryLive} margin={{ top:5, right:10, left:-20, bottom:0 }}>
               <defs>
                 <linearGradient id="gTempMach" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#EF4444" stopOpacity={0.25} /><stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
@@ -91,11 +106,11 @@ function MachineDetail({ machine, onClose }) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="hour" tick={{ fill:'#64748b', fontSize:10 }} tickLine={false} axisLine={false} interval={3} dy={5} />
+              <XAxis dataKey="timeLabel" tick={{ fill:'#64748b', fontSize:10 }} tickLine={false} axisLine={false} dy={5} minTickGap={20} />
               <YAxis tick={{ fill:'#64748b', fontSize:10 }} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke:'#00E5FF', strokeWidth:1, strokeDasharray:'4 4' }} />
-              <Area type="monotone" dataKey="temperature" stroke="#EF4444" strokeWidth={2} fill="url(#gTempMach)" name="Temperature" dot={false} activeDot={{ r:5, fill:'#EF4444', stroke:'#020617', strokeWidth:2 }} />
-              <Area type="monotone" dataKey="vibration"   stroke="#22C55E" strokeWidth={2} fill="url(#gVibMach)"  name="Vibration"   dot={false} activeDot={{ r:5, fill:'#22C55E', stroke:'#020617', strokeWidth:2 }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke:'#00E5FF', strokeWidth:1, strokeDasharray:'4 4' }} isAnimationActive={false} />
+              <Area type="monotone" dataKey="temperature" stroke="#EF4444" strokeWidth={2} fill="url(#gTempMach)" name="Temperature" dot={false} isAnimationActive={false} activeDot={{ r:5, fill:'#EF4444', stroke:'#020617', strokeWidth:2 }} />
+              <Area type="monotone" dataKey="vibration"   stroke="#22C55E" strokeWidth={2} fill="url(#gVibMach)"  name="Vibration"   dot={false} isAnimationActive={false} activeDot={{ r:5, fill:'#22C55E', stroke:'#020617', strokeWidth:2 }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>

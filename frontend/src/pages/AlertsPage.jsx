@@ -5,8 +5,8 @@ import api from '../api';
 
 const typeConfig = {
   safe:     { icon: CheckCircle,   color: 'text-[#00FF9C]', bg: 'bg-[#00FF9C]/5', border: 'border-[#00FF9C]/50 shadow-[0_0_10px_rgba(0,255,156,0.2)] hover:shadow-[0_0_15px_rgba(0,255,156,0.4)]', badge: 'bg-[#00FF9C]/10 text-[#00FF9C] border-[#00FF9C]/30 border px-2 py-0.5 rounded text-[10px]' },
-  warning:  { icon: AlertTriangle, color: 'text-[#FF4D4D]', bg: 'bg-[#FF4D4D]/5', border: 'border-[#FF4D4D]/50 shadow-[0_0_10px_rgba(255,77,77,0.2)] hover:shadow-[0_0_15px_rgba(255,77,77,0.4)]', badge: 'bg-[#FF4D4D]/10 text-[#FF4D4D] border-[#FF4D4D]/30 border px-2 py-0.5 rounded text-[10px]' },
-  critical: { icon: AlertTriangle, color: 'text-[#FFC857]', bg: 'bg-[#FFC857]/5', border: 'border-[#FFC857]/50 shadow-[0_0_10px_rgba(255,200,87,0.2)] hover:shadow-[0_0_15px_rgba(255,200,87,0.4)]', badge: 'bg-[#FFC857]/10 text-[#FFC857] border-[#FFC857]/30 border px-2 py-0.5 rounded text-[10px]' },
+  warning:  { icon: AlertTriangle, color: 'text-[#FFB800]', bg: 'bg-[#FFB800]/5', border: 'border-[#FFB800]/50 shadow-[0_0_10px_rgba(255,184,0,0.2)] hover:shadow-[0_0_15px_rgba(255,184,0,0.4)]', badge: 'bg-[#FFB800]/10 text-[#FFB800] border-[#FFB800]/30 border px-2 py-0.5 rounded text-[10px]' },
+  critical: { icon: AlertTriangle, color: 'text-[#FF3860]', bg: 'bg-[#FF3860]/5', border: 'border-[#FF3860]/50 shadow-[0_0_10px_rgba(255,56,96,0.2)] hover:shadow-[0_0_15px_rgba(255,56,96,0.4)]', badge: 'bg-[#FF3860]/10 text-[#FF3860] border-[#FF3860]/30 border px-2 py-0.5 rounded text-[10px]' },
   info:     { icon: Info,          color: 'text-[#00E5FF]', bg: 'bg-[#00E5FF]/5', border: 'border-[#00E5FF]/30 shadow-[0_0_10px_rgba(0,229,255,0.2)] hover:shadow-[0_0_15px_rgba(0,229,255,0.4)]', badge: 'bg-[#00E5FF]/10 text-[#00E5FF] border-[#00E5FF]/30 border px-2 py-0.5 rounded text-[10px]' },
 };
 
@@ -65,7 +65,13 @@ export default function AlertsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between animate-slide-in">
         <div>
-          <h1 className="page-title">SMART ALERT SYSTEM</h1>
+          <h1 className="page-title flex items-center gap-3">
+            SMART ALERT SYSTEM
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-factory-green/10 border border-factory-green/30 rounded-full">
+              <span className="w-1.5 h-1.5 bg-factory-green rounded-full live-alert-indicator shadow-[0_0_8px_#00FF94]"></span>
+              <span className="text-[10px] font-bold text-factory-green tracking-widest font-mono">LIVE ALERTS</span>
+            </div>
+          </h1>
           <p className="text-factory-dim font-body text-sm mt-1">Automated alerts for machines, inventory, and production</p>
         </div>
         {unreadCount > 0 && (
@@ -80,8 +86,8 @@ export default function AlertsPage() {
         {[
           { label: 'Total Alerts', value: alerts.length, color: 'text-factory-accent' },
           { label: 'Unread', value: unreadCount, color: 'text-[#00D4FF]' },
-          { label: 'Critical', value: alerts.filter(a => a.type === 'critical').length, color: 'text-[#FFB800]' },
-          { label: 'Warnings', value: alerts.filter(a => a.type === 'warning').length, color: 'text-[#FF3860]' },
+          { label: 'Critical', value: alerts.filter(a => a.type === 'critical').length, color: 'text-[#FF3860]' },
+          { label: 'Warnings', value: alerts.filter(a => a.type === 'warning').length, color: 'text-[#FFB800]' },
         ].map(({ label, value, color }) => (
           <div key={label} className="factory-card text-center">
             <div className={`font-display text-3xl font-bold ${color}`}>{value}</div>
@@ -121,8 +127,8 @@ export default function AlertsPage() {
             <div 
               id={`alert-${uid}`} 
               key={uid} 
-              className={`${bg} border ${border} rounded-lg p-4 transition-all duration-300 ease-in-out transform ${!alert.read ? 'opacity-100' : 'opacity-60'} animate-fade-up`} 
-              style={{ animationDelay: `${i * 30}ms` }}
+              className={`${bg} border ${border} rounded-lg p-4 transition-all duration-300 ease-in-out transform ${!alert.read ? 'opacity-100' : 'opacity-60'} ${i === 0 ? 'alert-card-new' : 'animate-fade-up'}`} 
+              style={{ animationDelay: i === 0 ? '0ms' : `${i * 30}ms` }}
             >
               <div className="flex items-start gap-3">
                 <div className={`w-10 h-10 rounded-lg ${bg} border ${border} flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>

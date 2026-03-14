@@ -157,6 +157,65 @@ export function useLiveData() {
     };
   }, [soundEnabled, notifEnabled, user]);
 
+  // ─── Simulated Alert Stream ────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+
+    const generateRandomAlert = () => {
+      const types = ['critical', 'warning', 'info'];
+      const categories = ['Machine', 'Production', 'Inventory', 'Safety', 'Energy'];
+      const templates = [
+        { title: 'Machine Overheating', message: 'Temperature reached {val}°C on {machine}', category: 'Machine', type: 'critical' },
+        { title: 'Vibration Anomaly', message: 'Vibration level {val} mm/s exceeds threshold on {machine}', category: 'Machine', type: 'warning' },
+        { title: 'Energy Spike', message: 'Unexpected energy surge of {val} kW detected in Sector {sector}', category: 'Energy', type: 'critical' },
+        { title: 'Production Slowdown', message: 'Efficiency dropped to {val}% on Line {line}', category: 'Production', type: 'warning' },
+        { title: 'Low Inventory', message: '{item} stock at {val} units (below threshold)', category: 'Inventory', type: 'warning' },
+        { title: 'Safety Incident', message: 'Unauthorized access detected in {zone}', category: 'Safety', type: 'critical' },
+      ];
+
+      const template = templates[Math.floor(Math.random() * templates.length)];
+      const machineNames = ['Mill Pro 5000', 'CNC Lathe Alpha', 'Hydraulic Press X2', 'Welding Bot WB-7'];
+      const items = ['Steel Rods', 'Aluminum Sheets', 'Hydraulic Fluid', 'Bearings 6205'];
+      
+      let message = template.message;
+      if (message.includes('{val}')) {
+        const val = template.title.includes('Temp') ? (Math.random() * 20 + 90).toFixed(1) 
+                  : template.title.includes('Vib') ? (Math.random() * 2 + 2.5).toFixed(2)
+                  : template.title.includes('Energy') ? (Math.random() * 50 + 150).toFixed(0)
+                  : template.title.includes('Production') ? (Math.random() * 20 + 40).toFixed(1)
+                  : (Math.random() * 10 + 5).toFixed(0);
+        message = message.replace('{val}', val);
+      }
+      message = message.replace('{machine}', machineNames[Math.floor(Math.random() * machineNames.length)])
+                       .replace('{sector}', Math.floor(Math.random() * 4 + 1))
+                       .replace('{line}', String.fromCharCode(65 + Math.floor(Math.random() * 3)))
+                       .replace('{item}', items[Math.floor(Math.random() * items.length)])
+                       .replace('{zone}', 'Dangerous Zone B4');
+
+      return {
+        id: 'sim-' + Date.now(),
+        title: template.title,
+        message,
+        type: template.type,
+        category: template.category,
+        time: 'Just now',
+        read: false,
+        date: new Date().toISOString()
+      };
+    };
+
+    const interval = setInterval(() => {
+      const newAlert = generateRandomAlert();
+      setAlerts(prev => [newAlert, ...prev].slice(0, 15)); // Keep last 15 alerts
+      
+      if (soundEnabled) playAlertSound(newAlert.type);
+      if (notifEnabled) sendBrowserNotification(newAlert);
+      setLastUpdate(new Date());
+    }, 5000); // Every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [user, soundEnabled, notifEnabled]);
+
   const markAlertRead = useCallback(async (id) => {
     try {
       await api.put(`/alerts/${id}/read`);

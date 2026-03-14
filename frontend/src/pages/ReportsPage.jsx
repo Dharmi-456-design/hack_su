@@ -60,11 +60,11 @@ function ProductionPreview() {
         <tbody>
           {PRODUCTION_DATA.map(d => (
             <tr key={d.date}>
-              <td className="py-2 px-3 text-factory-text">{d.date}</td>
-              <td className="py-2 px-3 text-factory-dim">{d.target}</td>
-              <td className={`py-2 px-3 font-bold ${d.actual >= d.target ? 'text-factory-green' : 'text-factory-amber'}`}>{d.actual}</td>
-              <td className={`py-2 px-3 ${d.actual >= d.target ? 'text-factory-green' : 'text-factory-red'}`}>{d.actual - d.target >= 0 ? '+' : ''}{d.actual - d.target}</td>
-              <td className={`py-2 px-3 ${d.efficiency >= 100 ? 'text-factory-green' : 'text-factory-amber'}`}>{d.efficiency}%</td>
+              <td>{d.date}</td>
+              <td className="text-secondary">{d.target}</td>
+              <td className={`font-bold ${d.actual >= d.target ? 'text-factory-green' : 'text-factory-amber'}`}>{d.actual}</td>
+              <td className={`${d.actual - d.target >= 0 ? 'text-factory-green' : 'text-factory-red'}`}>{d.actual - d.target >= 0 ? '+' : ''}{d.actual - d.target}</td>
+              <td className={`${d.efficiency >= 100 ? 'text-factory-green' : 'text-factory-amber'}`}>{d.efficiency}%</td>
             </tr>
           ))}
         </tbody>
@@ -87,16 +87,16 @@ function MachinePreview() {
         <tbody>
           {MACHINES.map(m => (
             <tr key={m.id}>
-              <td className="py-2 px-3 text-factory-text">{m.name}</td>
-              <td className="py-2 px-3">
+              <td>{m.name}</td>
+              <td>
                 <span className={m.status === 'operational' ? 'badge-operational' : m.status === 'warning' ? 'badge-warning' : m.status === 'critical' ? 'badge-critical' : 'badge-offline'}>
                   {m.status.toUpperCase()}
                 </span>
               </td>
-              <td className={`py-2 px-3 ${m.temperature > 90 ? 'text-factory-red' : m.temperature > 75 ? 'text-factory-amber' : 'text-factory-green'}`}>{m.temperature}</td>
-              <td className={`py-2 px-3 ${m.vibration > 2 ? 'text-factory-red' : m.vibration > 1 ? 'text-factory-amber' : 'text-factory-green'}`}>{m.vibration}</td>
-              <td className={`py-2 px-3 ${m.efficiency > 80 ? 'text-factory-green' : m.efficiency > 60 ? 'text-factory-amber' : 'text-factory-red'}`}>{m.efficiency}%</td>
-              <td className="py-2 px-3 text-factory-dim">{m.runtime}h</td>
+              <td className={`${m.temperature > 90 ? 'text-factory-red' : m.temperature > 75 ? 'text-factory-amber' : 'text-factory-green'}`}>{m.temperature}°C</td>
+              <td className={`${m.vibration > 2 ? 'text-factory-red' : m.vibration > 1 ? 'text-factory-amber' : 'text-factory-green'}`}>{m.vibration} mm/s</td>
+              <td className={`${m.efficiency > 80 ? 'text-factory-green' : m.efficiency > 60 ? 'text-factory-amber' : 'text-factory-red'}`}>{m.efficiency}%</td>
+              <td className="text-secondary">{m.runtime}h</td>
             </tr>
           ))}
         </tbody>
@@ -206,12 +206,12 @@ export default function ReportsPage() {
               <tbody>
                 {WORKERS.map(w => (
                   <tr key={w.id}>
-                    <td className="py-2 px-3 text-factory-text">{w.name}</td>
-                    <td className="py-2 px-3 text-factory-dim">{w.department}</td>
-                    <td className="py-2 px-3 text-factory-dim">{w.role}</td>
-                    <td className={`py-2 px-3 font-bold ${w.performance > 90 ? 'text-factory-green' : 'text-factory-amber'}`}>{w.performance}%</td>
-                    <td className="py-2 px-3 text-factory-green">{w.completedTasks}</td>
-                    <td className={`py-2 px-3 ${w.safetyScore >= 95 ? 'text-factory-green' : 'text-factory-amber'}`}>{w.safetyScore}</td>
+                    <td>{w.name}</td>
+                    <td className="text-secondary">{w.department}</td>
+                    <td className="text-secondary">{w.role}</td>
+                    <td className={`font-bold ${w.performance > 90 ? 'text-factory-green' : 'text-factory-amber'}`}>{w.performance}%</td>
+                    <td className="text-factory-green">{w.completedTasks}</td>
+                    <td className={`${w.safetyScore >= 95 ? 'text-factory-green' : 'text-factory-amber'}`}>{w.safetyScore}</td>
                   </tr>
                 ))}
               </tbody>
@@ -233,12 +233,12 @@ export default function ReportsPage() {
                   const isLow = item.stock <= item.minStock;
                   return (
                     <tr key={item.id}>
-                      <td className="py-2 px-3 text-factory-text">{item.name}</td>
-                      <td className="py-2 px-3 text-factory-dim">{item.category}</td>
-                      <td className={`py-2 px-3 font-bold ${isLow ? 'text-factory-red' : 'text-factory-green'}`}>{item.stock} {item.unit}</td>
-                      <td className="py-2 px-3 text-factory-dim">{item.minStock} {item.unit}</td>
-                      <td className="py-2 px-3"><span className={isLow ? 'badge-critical' : 'badge-operational'}>{isLow ? 'LOW' : 'OK'}</span></td>
-                      <td className="py-2 px-3 text-factory-accent">₹{(item.stock * item.unitCost).toLocaleString()}</td>
+                      <td>{item.name}</td>
+                      <td className="text-secondary">{item.category}</td>
+                      <td className={`font-bold ${isLow ? 'text-factory-red' : 'text-factory-green'}`}>{item.stock} {item.unit}</td>
+                      <td className="text-secondary">{item.minStock} {item.unit}</td>
+                      <td><span className={isLow ? 'badge-critical' : 'badge-operational'}>{isLow ? 'LOW' : 'OK'}</span></td>
+                      <td className="text-factory-accent">₹{(item.stock * item.unitCost).toLocaleString()}</td>
                     </tr>
                   );
                 })}

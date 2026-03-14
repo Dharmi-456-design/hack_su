@@ -13,9 +13,9 @@ import {
 
 /* ───────── constants ───────── */
 const MACHINE_POWER = {
-  'CNC Lathe': 7.5, 'Hydraulic Press': 15, 'Robotic Welder': 5,
-  'Milling Machine': 12, 'Conveyor': 2.5, 'Drill Press': 3,
-  'Injection Molder': 10, 'Laser Cutter': 8,
+  'CNC Lathe': 7.5, 'Hydraulic Press': 15, 'Welding Robot': 5, 'Robotic Welder': 5,
+  'CNC Milling Machine': 12, 'Milling Machine': 12, 'Conveyor System': 2.5, 'Conveyor': 2.5,
+  'Drill Press': 3, 'Injection Molding Machine': 10, 'Injection Molder': 10, 'Laser Cutting Machine': 8, 'Laser Cutter': 8,
 };
 
 // Stable seeded hourly energy (past 24 h)
@@ -55,12 +55,14 @@ const WEEKLY = [
 
 // Fallback demo machines when API has no data
 const DEMO_MACHINES = [
-  { id: 'd1', name: 'Conveyor Belt C3',   type: 'Conveyor',        efficiency: 95, status: 'operational', machineId: 'CB-C3' },
-  { id: 'd2', name: 'CNC Lathe Alpha',    type: 'CNC Lathe',       efficiency: 92, status: 'operational', machineId: 'CNC-A' },
-  { id: 'd3', name: 'Welding Bot WB-7',   type: 'Robotic Welder',  efficiency: 88, status: 'operational', machineId: 'WB-7'  },
-  { id: 'd4', name: 'Injection Mold IM1', type: 'Injection Molder',efficiency: 76, status: 'warning',     machineId: 'IM-1'  },
-  { id: 'd5', name: 'Hydraulic Press X2', type: 'Hydraulic Press', efficiency: 62, status: 'warning',     machineId: 'HP-X2' },
-  { id: 'd6', name: 'Laser Cutter LC9',   type: 'Laser Cutter',    efficiency: 55, status: 'critical',    machineId: 'LC-9'  },
+  { id: 'd1', name: 'Conveyor Belt C3',   type: 'Conveyor System',        efficiency: 95, status: 'operational', machineId: 'CB-C3' },
+  { id: 'd2', name: 'CNC Lathe Alpha',    type: 'CNC Lathe',              efficiency: 92, status: 'operational', machineId: 'CNC-A' },
+  { id: 'd3', name: 'Welding Bot WB-7',   type: 'Welding Robot',          efficiency: 88, status: 'operational', machineId: 'WB-7'  },
+  { id: 'd4', name: 'Injection Mold IM1', type: 'Injection Molding Machine',efficiency: 76, status: 'warning',     machineId: 'IM-1'  },
+  { id: 'd5', name: 'Hydraulic Press X2', type: 'Hydraulic Press',        efficiency: 62, status: 'warning',     machineId: 'HP-X2' },
+  { id: 'd6', name: 'Laser Cutter LC9',   type: 'Laser Cutting Machine',  efficiency: 55, status: 'critical',    machineId: 'LC-9'  },
+  { id: 'd7', name: 'Mill Pro 5000',      type: 'CNC Milling Machine',    efficiency: 45, status: 'critical',    machineId: 'MP-5K' },
+  { id: 'd8', name: 'Drill Press DP-2',   type: 'Drill Press',            efficiency: 0,  status: 'offline',     machineId: 'DP-2'  },
 ];
 
 /* ───────── helpers ───────── */
@@ -501,11 +503,11 @@ export default function EnergyPage() {
             <tbody>
               {machineEnergy.map(m => (
                 <tr key={m.id || m._id} className={m.isWasting ? 'bg-factory-red/5' : ''}>
-                  <td className="font-medium text-factory-text">{m.name}</td>
-                  <td className="text-factory-dim text-xs">{m.type}</td>
-                  <td className="text-factory-dim">{m.powerKw}</td>
-                  <td className={`font-bold ${m.isWasting ? 'text-factory-red' : 'text-factory-green'}`}>{m.consumption}</td>
-                  <td className="text-factory-amber">₹{m.costPerHr}</td>
+                  <td className="font-medium">{m.name}</td>
+                  <td><span className="machine-type-tag">{m.type}</span></td>
+                  <td className="text-secondary">{m.powerKw} kW</td>
+                  <td className={`font-bold ${m.isWasting ? 'text-factory-red' : 'text-factory-green'}`}>{m.consumption} kW</td>
+                  <td className="text-factory-amber font-mono">₹{m.costPerHr.toLocaleString()}</td>
                   <td>
                     <div className="flex items-center gap-2">
                       <div className="w-16 h-1.5 bg-factory-bg rounded overflow-hidden">

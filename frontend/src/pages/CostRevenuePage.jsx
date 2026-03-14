@@ -55,7 +55,7 @@ const FinancialTooltip = ({ active, payload, label }) => {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
             {/* Coloured indicator matching line style */}
             <div style={{ width: 18, height: 3, borderRadius: 2, flexShrink: 0, background: cfg.dash ? 'none' : cfg.color, border: cfg.dash ? `2px dashed ${cfg.color}` : 'none', opacity: 0.9 }} />
-            <span style={{ color: '#64748b', fontSize: 12, flex: 1 }}>{p.name}</span>
+            <span style={{ color: '#FFFFFF', fontSize: 12, flex: 1 }}>{p.name}</span>
             <span style={{ color: cfg.color, fontSize: 13, fontWeight: 700 }}>
               ₹{(Number(p.value) / 100000).toFixed(1)}L
             </span>
@@ -164,7 +164,7 @@ export default function CostRevenuePage() {
                   : /* solid indicator for Revenue & Profit */
                     <span style={{ display: 'inline-block', width: 22, height: 3, borderRadius: 2, background: cfg.color, boxShadow: key === 'profit' ? `0 0 6px ${cfg.color}88` : 'none' }} />
                 }
-                <span style={{ fontFamily: 'monospace', fontSize: 11, color: cfg.color, fontWeight: 600 }}>{cfg.label}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#FFFFFF', fontWeight: 600 }}>{cfg.label}</span>
               </div>
             ))}
           </div>
@@ -271,7 +271,7 @@ export default function CostRevenuePage() {
                 <Pie data={COST_BREAKDOWN} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
                   {COST_BREAKDOWN.map((entry, i) => <Cell key={i} fill={entry.color} fillOpacity={0.85} />)}
                 </Pie>
-                <Tooltip formatter={v => `${v}%`} contentStyle={{ background: '#111E32', border: '1px solid #1E3A5F', fontFamily: 'Share Tech Mono', fontSize: 11 }} />
+                <Tooltip formatter={v => `${v}%`} contentStyle={{ background: '#111E32', border: '1px solid #1E3A5F', fontFamily: 'Share Tech Mono', fontSize: 11, color: '#FFFFFF' }} itemStyle={{ color: '#FFFFFF' }} />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex-1 space-y-2">
@@ -279,7 +279,7 @@ export default function CostRevenuePage() {
                 <div key={item.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-sm" style={{ background: item.color }}></div>
-                    <span className="font-mono text-xs text-factory-dim">{item.name}</span>
+                    <span className="font-mono text-xs text-white">{item.name}</span>
                   </div>
                   <span className="font-display font-bold text-sm text-factory-text">{item.value}%</span>
                 </div>

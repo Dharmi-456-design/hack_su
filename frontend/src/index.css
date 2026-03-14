@@ -8,9 +8,9 @@
   }
   
   body {
-    background-color: #060B14;
-    color: #C8DCF0;
-    font-family: 'Rajdhani', sans-serif;
+    background-color: #020617;
+    color: #f8fafc;
+    font-family: 'Inter', sans-serif;
     overflow-x: hidden;
   }
 
@@ -19,20 +19,25 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #0D1625;
+    background: #0f172a;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1E3A5F;
+    background: #1e293b;
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #00D4FF44;
+    background: #00E5FF44;
   }
 }
 
 @layer components {
   .factory-card {
-    @apply bg-factory-card border border-factory-border rounded-lg p-4 relative overflow-hidden;
+    @apply bg-factory-card border border-factory-border rounded-xl p-5 relative overflow-hidden transition-all duration-300;
+  }
+  
+  .factory-card:hover {
+    @apply transform -translate-y-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)];
+    border-color: #00E5FF44;
   }
   
   .factory-card::before {
@@ -40,27 +45,27 @@
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, #00D4FF44, transparent);
+    background: linear-gradient(90deg, transparent, #00E5FF44, transparent);
   }
 
   .glow-accent {
-    box-shadow: 0 0 20px #00D4FF22, 0 0 40px #00D4FF11;
-    border-color: #00D4FF66 !important;
+    box-shadow: 0 0 20px #00E5FF22, 0 0 40px #00E5FF11;
+    border-color: #00E5FF66 !important;
   }
 
   .glow-green {
-    box-shadow: 0 0 20px #00FF9422, 0 0 40px #00FF9411;
-    border-color: #00FF9466 !important;
+    box-shadow: 0 0 20px #22C55E22, 0 0 40px #22C55E11;
+    border-color: #22C55E66 !important;
   }
 
   .glow-red {
-    box-shadow: 0 0 20px #FF386022, 0 0 40px #FF386011;
-    border-color: #FF386066 !important;
+    box-shadow: 0 0 20px #EF444422, 0 0 40px #EF444411;
+    border-color: #EF444466 !important;
   }
 
   .glow-amber {
-    box-shadow: 0 0 20px #FFB80022, 0 0 40px #FFB80011;
-    border-color: #FFB80066 !important;
+    box-shadow: 0 0 20px #F59E0B22, 0 0 40px #F59E0B11;
+    border-color: #F59E0B66 !important;
   }
 
   .status-dot {
@@ -69,9 +74,14 @@
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-factory-accent text-factory-bg font-display font-bold text-sm rounded
-           hover:bg-cyan-300 transition-all duration-200 tracking-wider;
-    box-shadow: 0 0 15px #00D4FF44;
+    @apply px-4 py-2 bg-factory-accent text-factory-bg font-display font-medium text-sm rounded-lg
+           hover:bg-cyan-200 transition-all duration-300 tracking-wide;
+    box-shadow: 0 0 15px #00E5FF44;
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 25px #00E5FF66;
+    transform: translateY(-1px);
   }
 
   .btn-secondary {
@@ -91,28 +101,28 @@
   }
 
   .metric-value {
-    @apply font-display text-3xl font-bold text-factory-accent;
-    text-shadow: 0 0 20px #00D4FF66;
+    @apply font-display text-4xl font-semibold text-factory-accent;
+    text-shadow: 0 0 15px #00E5FF44;
   }
 
   .section-title {
-    @apply font-display text-sm font-bold tracking-widest text-factory-dim uppercase;
+    @apply font-display text-sm font-semibold tracking-wider text-factory-dim uppercase;
   }
 
   .page-title {
-    @apply font-display text-xl font-bold text-factory-accent tracking-wider;
-    text-shadow: 0 0 30px #00D4FF44;
+    @apply font-display text-2xl font-bold text-factory-accent tracking-wide;
+    text-shadow: 0 0 20px #00E5FF33;
   }
 
   .nav-item {
-    @apply flex items-center gap-3 px-4 py-3 text-factory-dim hover:text-factory-text
-           hover:bg-factory-border rounded-lg transition-all duration-200 cursor-pointer
+    @apply flex items-center gap-3 px-4 py-3 text-factory-dim hover:text-white
+           rounded-xl transition-all duration-300 cursor-pointer
            font-body font-medium text-sm tracking-wide;
   }
 
   .nav-item.active {
-    @apply text-factory-accent bg-factory-border;
-    border-left: 2px solid #00D4FF;
+    @apply text-factory-accent bg-factory-border/30 shadow-[inset_0_0_20px_rgba(0,229,255,0.05)];
+    border-left: 3px solid #00E5FF;
   }
 
   .badge-operational {
@@ -161,8 +171,8 @@
 .bg-grid {
   background-size: 40px 40px;
   background-image: 
-    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), 
-    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    linear-gradient(rgba(0,229,255,0.02) 1px, transparent 1px), 
+    linear-gradient(90deg, rgba(0,229,255,0.02) 1px, transparent 1px);
 }
 
 .corner-bracket::before, .corner-bracket::after {
@@ -172,11 +182,32 @@
 }
 .corner-bracket::before {
   top: -1px; left: -1px;
-  border-top: 2px solid #00D4FF;
-  border-left: 2px solid #00D4FF;
+  border-top: 2px solid #00E5FF;
+  border-left: 2px solid #00E5FF;
 }
 .corner-bracket::after {
   bottom: -1px; right: -1px;
-  border-bottom: 2px solid #00D4FF;
-  border-right: 2px solid #00D4FF;
+  border-bottom: 2px solid #00E5FF;
+  border-right: 2px solid #00E5FF;
+}
+
+/* Custom Recharts overrides for modern SaaS look */
+.recharts-tooltip-wrapper {
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+.recharts-rectangle {
+  transition: fill 0.3s ease, opacity 0.3s ease;
+}
+.recharts-active-bar .recharts-rectangle {
+  filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.5));
+}
+.modern-tooltip {
+  @apply bg-factory-card/90 backdrop-blur-md border border-factory-border rounded-xl p-3 shadow-2xl;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px rgba(0,229,255,0.1);
+}
+.modern-tooltip-label {
+  @apply text-factory-dim text-xs font-semibold mb-2 uppercase tracking-wider;
+}
+.modern-tooltip-item {
+  @apply flex items-center gap-2 text-sm font-medium text-white mb-1;
 }

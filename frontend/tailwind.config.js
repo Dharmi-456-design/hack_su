@@ -5,22 +5,22 @@ export default {
     extend: {
       colors: {
         factory: {
-          bg: '#060B14',
-          panel: '#0D1625',
-          card: '#111E32',
-          border: '#1E3A5F',
-          accent: '#00D4FF',
-          green: '#00FF94',
-          amber: '#FFB800',
-          red: '#FF3860',
-          muted: '#3A5A7C',
-          text: '#C8DCF0',
-          dim: '#5A7A9A',
+          bg: '#020617',
+          panel: '#0f172a',
+          card: '#0f172a',
+          border: '#1e293b',
+          accent: '#00E5FF',
+          green: '#22C55E',
+          amber: '#F59E0B',
+          red: '#EF4444',
+          muted: '#64748b',
+          text: '#f8fafc',
+          dim: '#94a3b8',
         }
       },
       fontFamily: {
-        display: ['Orbitron', 'monospace'],
-        body: ['Rajdhani', 'sans-serif'],
+        display: ['Orbitron', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
         mono: ['Share Tech Mono', 'monospace'],
       },
       animation: {

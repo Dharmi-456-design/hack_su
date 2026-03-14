@@ -1,10 +1,30 @@
 import React, { useState } from 'react';
 import { INVENTORY } from '../data/dummyData';
-import { Package, AlertTriangle, TrendingDown, Search, Plus, Download } from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, Search, Plus, Download, X, ShoppingCart, Upload } from 'lucide-react';
+
+const ModalOverlay = ({ children, onClose }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+    <div onClick={e => e.stopPropagation()} className="w-full max-w-lg" style={{ animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+      {children}
+    </div>
+  </div>
+);
+
+const InputGroup = ({ label, type = "text", placeholder, defaultValue, required }) => (
+  <div className="mb-4">
+    <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase letter-spacing-1">{label} {required && <span className="text-factory-red">*</span>}</label>
+    <input type={type} placeholder={placeholder} defaultValue={defaultValue} required={required}
+      className="w-full bg-factory-bg/50 border border-factory-border rounded px-4 py-2.5 text-factory-text font-body text-sm focus:outline-none focus:border-factory-accent transition-colors"
+      style={{ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}
+    />
+  </div>
+);
 
 export default function InventoryPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
+  const [orderingItem, setOrderingItem] = useState(null);
+  const [isAddingItem, setIsAddingItem] = useState(false);
 
   const categories = [...new Set(INVENTORY.map(i => i.category))];
   const filtered = INVENTORY.filter(item => {
@@ -30,7 +50,9 @@ export default function InventoryPage() {
           <h1 className="page-title">INVENTORY AUTOMATION</h1>
           <p className="text-factory-dim font-body text-sm mt-1">Real-time stock tracking with automated low-stock alerts</p>
         </div>
-        <button className="btn-primary flex items-center gap-2"><Plus size={14} /> ADD ITEM</button>
+        <button onClick={() => setIsAddingItem(true)} className="btn-primary flex items-center gap-2 hover:-translate-y-1 transition-transform" style={{ boxShadow: '0 4px 15px rgba(0,229,255,0.2)' }}>
+          <Plus size={14} /> ADD ITEM
+        </button>
       </div>
 
       {/* Summary */}
@@ -65,7 +87,7 @@ export default function InventoryPage() {
                   <span className="font-display text-lg font-bold text-factory-red">{item.stock} {item.unit}</span>
                   <span className="font-mono text-xs text-factory-dim">Min: {item.minStock}</span>
                 </div>
-                <button className="mt-2 w-full text-xs font-mono py-1.5 border border-factory-red/50 text-factory-red rounded hover:bg-factory-red/20 transition-colors">
+                <button onClick={() => setOrderingItem(item)} className="mt-2 w-full text-xs font-mono py-1.5 border border-factory-red/50 text-factory-red rounded hover:bg-factory-red/20 hover:shadow-[0_0_10px_rgba(239,68,68,0.3)] transition-all">
                   PLACE ORDER
                 </button>
               </div>
@@ -135,6 +157,127 @@ export default function InventoryPage() {
           </table>
         </div>
       </div>
+
+      {/* Place Order Modal */}
+      {orderingItem && (
+        <ModalOverlay onClose={() => setOrderingItem(null)}>
+          <div className="bg-factory-panel border border-factory-accent/30 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,229,255,0.15)] relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-factory-accent to-factory-green"></div>
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <ShoppingCart size={18} className="text-factory-accent" />
+                    <h2 className="font-display text-xl font-bold text-factory-text">PLACE ORDER</h2>
+                  </div>
+                  <p className="font-mono text-xs text-factory-dim uppercase">{orderingItem.id} · {orderingItem.category}</p>
+                </div>
+                <button onClick={() => setOrderingItem(null)} className="text-factory-dim hover:text-factory-red transition-colors auto-blur">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={e => { e.preventDefault(); setOrderingItem(null); alert('Order placed successfully!'); }}>
+                <div className="grid grid-cols-2 gap-x-4">
+                  <InputGroup label="Orderer Name" placeholder="Full Name" required />
+                  <InputGroup label="Phone Number" type="tel" placeholder="+91 90000 00000" required pattern="[+0-9\s\-]+" />
+                </div>
+                
+                <div className="mb-4 bg-factory-bg/40 border border-factory-border/50 rounded-lg p-3">
+                  <div className="font-mono text-[10px] text-factory-dim mb-2 uppercase">Order Details</div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-body text-sm text-factory-text font-medium">{orderingItem.name}</span>
+                    <span className="font-mono text-xs text-factory-accent">{orderingItem.stock} {orderingItem.unit} in stock</span>
+                  </div>
+                  <div className="font-mono text-xs text-factory-dim">Supplier: <span className="text-factory-text">{orderingItem.supplier}</span></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-4">
+                  <InputGroup label={`Quantity to Order (${orderingItem.unit})`} type="number" defaultValue={orderingItem.maxStock - orderingItem.stock} required />
+                  <InputGroup label="Expected Delivery" type="date" required />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase tracking-wide">Additional Notes</label>
+                  <textarea rows="2" className="w-full bg-factory-bg/50 border border-factory-border rounded px-4 py-2.5 text-factory-text font-body text-sm focus:outline-none focus:border-factory-accent transition-colors resize-none"></textarea>
+                </div>
+
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setOrderingItem(null)} className="flex-1 py-2.5 rounded font-mono text-xs font-bold text-factory-dim border border-factory-border hover:bg-factory-border/30 transition-colors">CANCEL</button>
+                  <button type="submit" className="flex-1 py-2.5 rounded font-mono text-xs font-bold bg-factory-accent/10 text-factory-accent border border-factory-accent/50 hover:bg-factory-accent hover:text-black hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all">CONFIRM ORDER</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Add Item Modal */}
+      {isAddingItem && (
+        <ModalOverlay onClose={() => setIsAddingItem(false)}>
+          <div className="bg-factory-panel border border-factory-green/30 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(34,197,94,0.15)] relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-factory-green to-factory-accent"></div>
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Package size={18} className="text-factory-green" />
+                    <h2 className="font-display text-xl font-bold text-factory-text">ADD NEW INVENTORY</h2>
+                  </div>
+                  <p className="font-mono text-xs text-factory-dim uppercase">Register new material, tool, or spare part</p>
+                </div>
+                <button onClick={() => setIsAddingItem(false)} className="text-factory-dim hover:text-factory-red transition-colors auto-blur">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={e => { e.preventDefault(); setIsAddingItem(false); alert('Item added successfully!'); }}>
+                <div className="grid grid-cols-2 gap-x-4">
+                  <InputGroup label="Item Name" placeholder="e.g. Copper Wire Coils" required />
+                  <div className="mb-4">
+                    <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase letter-spacing-1">Category <span className="text-factory-red">*</span></label>
+                    <select className="w-full bg-factory-bg/50 border border-factory-border rounded px-4 py-2.5 text-factory-text font-body text-sm focus:outline-none focus:border-factory-green transition-colors" required>
+                      <option value="">Select Category...</option>
+                      <option value="Raw Material">Raw Material</option>
+                      <option value="Tool">Tools</option>
+                      <option value="Spare Part">Spare Parts</option>
+                      <option value="Consumable">Consumables</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-4">
+                  <InputGroup label="Supplier Name" placeholder="Vendor Company" required />
+                  <InputGroup label="Supplier Phone" type="tel" placeholder="+91 90000 00000" required />
+                </div>
+
+                <div className="grid grid-cols-4 gap-x-4 border-t border-factory-border/30 pt-4 mt-2">
+                  <InputGroup label="Initial Stock" type="number" placeholder="0" required />
+                  <InputGroup label="Min Stock" type="number" placeholder="0" required />
+                  <InputGroup label="Max Stock" type="number" placeholder="0" required />
+                  <InputGroup label="Unit Cost (₹)" type="number" placeholder="0" required />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block font-mono text-xs text-factory-dim mb-1.5 uppercase tracking-wide">Upload Item Image (Optional)</label>
+                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-factory-border border-dashed rounded-lg cursor-pointer bg-factory-bg/30 hover:bg-factory-bg/60 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <Upload size={20} className="text-factory-dim mb-2" />
+                      <p className="font-body text-xs text-factory-dim"><span className="font-semibold text-factory-green">Click to upload</span> or drag and drop</p>
+                    </div>
+                    <input type="file" className="hidden" />
+                  </label>
+                </div>
+
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setIsAddingItem(false)} className="flex-1 py-2.5 rounded font-mono text-xs font-bold text-factory-dim border border-factory-border hover:bg-factory-border/30 transition-colors">CANCEL</button>
+                  <button type="submit" className="flex-1 py-2.5 rounded font-mono text-xs font-bold bg-factory-green/10 text-factory-green border border-factory-green/50 hover:bg-factory-green hover:text-black hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all">ADD NEW ITEM</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 }

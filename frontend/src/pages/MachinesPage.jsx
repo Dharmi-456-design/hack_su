@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MACHINES, MACHINE_HISTORY } from '../data/dummyData';
 import { useLive } from '../context/LiveDataContext';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Cpu, Thermometer, Activity, Clock, User, MapPin, Wrench, Search, Filter } from 'lucide-react';
 
 const statusConfig = {
@@ -13,12 +13,40 @@ const statusConfig = {
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
+  const temp = payload.find(p => p.dataKey === 'temperature')?.value;
+  const vib = payload.find(p => p.dataKey === 'vibration')?.value;
+  let status = 'OPERATIONAL';
+  let statusColor = '#22C55E';
+  if (temp > 95 || vib > 2) { status = 'CRITICAL'; statusColor = '#EF4444'; }
+  else if (temp > 80 || vib > 1) { status = 'WARNING'; statusColor = '#F59E0B'; }
+
   return (
-    <div className="bg-factory-panel border border-factory-border rounded p-3 font-mono text-xs">
-      <div className="text-factory-dim mb-1">{label}</div>
+    <div style={{
+      background: '#0c1628ee',
+      backdropFilter: 'blur(14px)',
+      border: `1px solid #00E5FF44`,
+      borderRadius: '12px',
+      padding: '12px 16px',
+      boxShadow: `0 16px 40px rgba(0,0,0,0.6), 0 0 20px rgba(0,229,255,0.08)`,
+      minWidth: '160px',
+      animation: 'fadeInUp 0.2s ease-out'
+    }}>
+      <div style={{ color: '#64748b', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+        TIME: {label}
+      </div>
       {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color }}>{p.name}: <strong>{typeof p.value === 'number' ? p.value.toFixed(1) : p.value}</strong></div>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color, boxShadow: `0 0 8px ${p.color}` }} />
+          <span style={{ color: '#64748b', fontSize: '12px' }}>{p.name}:</span>
+          <span style={{ color: '#fff', fontSize: '13px', fontWeight: 700, marginLeft: 'auto' }}>
+            {typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
+          </span>
+        </div>
       ))}
+      <div style={{ borderTop: '1px solid #1e293b', marginTop: '8px', paddingTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: 'pulse-dot 2s infinite' }} />
+        <span style={{ color: statusColor, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>{status}</span>
+      </div>
     </div>
   );
 };
@@ -57,16 +85,40 @@ function MachineDetail({ machine, onClose }) {
         </div>
 
         <div className="mb-6">
-          <div className="section-title mb-3">24-HOUR PERFORMANCE</div>
+          <div className="flex justify-between items-center mb-3">
+            <div className="section-title mb-0">24-HOUR SENSOR DATA</div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div style={{ width: 10, height: 3, background: '#EF4444', borderRadius: 2 }} />
+                <span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Temperature</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div style={{ width: 10, height: 3, background: '#22C55E', borderRadius: 2 }} />
+                <span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Vibration</span>
+              </div>
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={MACHINE_HISTORY} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-              <XAxis dataKey="hour" tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} interval={3} />
-              <YAxis tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="temperature" stroke="#FF3860" strokeWidth={1.5} dot={false} name="Temp °C" />
-              <Line type="monotone" dataKey="efficiency" stroke="#00FF94" strokeWidth={1.5} dot={false} name="Efficiency %" />
-            </LineChart>
+            <AreaChart data={MACHINE_HISTORY} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gTempMach" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gVibMach" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22C55E" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="hour" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} interval={3} dy={5} />
+              <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#00E5FF', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              <Area type="monotone" dataKey="temperature" stroke="#EF4444" strokeWidth={2} fill="url(#gTempMach)" name="Temperature" dot={false}
+                activeDot={{ r: 5, fill: '#EF4444', stroke: '#020617', strokeWidth: 2, filter: 'drop-shadow(0 0 6px #EF4444)' }} />
+              <Area type="monotone" dataKey="vibration" stroke="#22C55E" strokeWidth={2} fill="url(#gVibMach)" name="Vibration" dot={false}
+                activeDot={{ r: 5, fill: '#22C55E', stroke: '#020617', strokeWidth: 2, filter: 'drop-shadow(0 0 6px #22C55E)' }} />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
 

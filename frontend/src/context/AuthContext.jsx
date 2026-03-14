@@ -9,7 +9,7 @@ const DEMO_USERS = [
 ];
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState({ id: 'u001', email: 'admin@factory.com', name: 'Rajesh Kumar', role: 'Admin', avatar: 'RK' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

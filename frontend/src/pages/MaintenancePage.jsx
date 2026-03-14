@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MACHINES, MACHINE_HISTORY } from '../data/dummyData';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Wrench, AlertTriangle, Brain, Clock, TrendingUp, CheckCircle } from 'lucide-react';
 
 // Simulated AI prediction logic
@@ -29,10 +29,40 @@ function getRiskLevel(score) {
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
+  const temp = payload.find(p => p.dataKey === 'temperature')?.value;
+  const vib = payload.find(p => p.dataKey === 'vibration')?.value;
+  let status = 'OPERATIONAL';
+  let statusColor = '#22C55E';
+  if (temp > 95 || vib > 2) { status = 'CRITICAL'; statusColor = '#EF4444'; }
+  else if (temp > 80 || vib > 1) { status = 'WARNING'; statusColor = '#F59E0B'; }
+
   return (
-    <div className="bg-factory-panel border border-factory-border rounded p-3 font-mono text-xs">
-      <div className="text-factory-dim mb-1">{label}</div>
-      {payload.map((p, i) => <div key={i} style={{ color: p.color }}>{p.name}: <strong>{typeof p.value === 'number' ? p.value.toFixed(1) : p.value}</strong></div>)}
+    <div style={{
+      background: '#0c1628ee',
+      backdropFilter: 'blur(14px)',
+      border: `1px solid #00E5FF44`,
+      borderRadius: '12px',
+      padding: '12px 16px',
+      boxShadow: `0 16px 40px rgba(0,0,0,0.6), 0 0 20px rgba(0,229,255,0.08)`,
+      minWidth: '160px',
+      animation: 'fadeInUp 0.2s ease-out'
+    }}>
+      <div style={{ color: '#64748b', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+        TIME: {label}
+      </div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color, boxShadow: `0 0 8px ${p.color}` }} />
+          <span style={{ color: '#64748b', fontSize: '12px' }}>{p.name}:</span>
+          <span style={{ color: '#fff', fontSize: '13px', fontWeight: 700, marginLeft: 'auto' }}>
+            {typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
+          </span>
+        </div>
+      ))}
+      <div style={{ borderTop: '1px solid #1e293b', marginTop: '8px', paddingTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: 'pulse-dot 2s infinite' }} />
+        <span style={{ color: statusColor, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>{status}</span>
+      </div>
     </div>
   );
 };
@@ -111,8 +141,13 @@ export default function MaintenancePage() {
                   <span>{m.riskScore}%</span>
                 </div>
                 <div className="h-2 bg-factory-bg rounded overflow-hidden">
-                  <div className={`h-full rounded transition-all duration-700 ${m.riskScore >= 70 ? 'bg-factory-red' : m.riskScore >= 40 ? 'bg-factory-amber' : 'bg-factory-green'}`}
-                    style={{ width: `${m.riskScore}%` }}></div>
+                  <div className={`h-full rounded transition-all duration-700`}
+                    style={{ 
+                      width: `${m.riskScore}%`,
+                      background: m.riskScore >= 70 ? 'linear-gradient(90deg, #EF4444, #FF0055)' : m.riskScore >= 40 ? '#F59E0B' : '#22C55E',
+                      boxShadow: m.riskScore >= 70 ? '0 0 10px rgba(239,68,68,0.8)' : 'none',
+                      animation: m.riskScore >= 70 ? 'pulse-dot 2s infinite' : 'none'
+                    }}></div>
                 </div>
               </div>
 
@@ -147,18 +182,42 @@ export default function MaintenancePage() {
               {/* Expanded chart */}
               {selected?.id === m.id && (
                 <div className="mt-4 pt-4 border-t border-factory-border" onClick={e => e.stopPropagation()}>
-                  <div className="section-title mb-3">24-HOUR SENSOR HISTORY</div>
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="section-title mb-0">24-HOUR SENSOR HISTORY</div>
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 10, height: 3, background: '#EF4444', borderRadius: 2 }} />
+                        <span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Temperature</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 10, height: 3, background: '#22C55E', borderRadius: 2 }} />
+                        <span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Vibration</span>
+                      </div>
+                    </div>
+                  </div>
                   <ResponsiveContainer width="100%" height={150}>
-                    <LineChart data={MACHINE_HISTORY} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-                      <XAxis dataKey="hour" tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} interval={4} />
-                      <YAxis tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Line type="monotone" dataKey="temperature" stroke="#FF3860" strokeWidth={1.5} dot={false} name="Temp °C" />
-                      <Line type="monotone" dataKey="efficiency" stroke="#00FF94" strokeWidth={1.5} dot={false} name="Efficiency %" />
-                    </LineChart>
+                    <AreaChart data={MACHINE_HISTORY} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="gTemp" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#EF4444" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="gVib" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22C55E" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                      <XAxis dataKey="hour" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} interval={4} dy={5} />
+                      <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#00E5FF', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area type="monotone" dataKey="temperature" stroke="#EF4444" strokeWidth={2} fill="url(#gTemp)" name="Temperature" dot={false}
+                        activeDot={{ r: 5, fill: '#EF4444', stroke: '#020617', strokeWidth: 2, filter: 'drop-shadow(0 0 6px #EF4444)' }} />
+                      <Area type="monotone" dataKey="vibration" stroke="#22C55E" strokeWidth={2} fill="url(#gVib)" name="Vibration" dot={false}
+                        activeDot={{ r: 5, fill: '#22C55E', stroke: '#020617', strokeWidth: 2, filter: 'drop-shadow(0 0 6px #22C55E)' }} />
+                    </AreaChart>
                   </ResponsiveContainer>
-                  <button className="mt-3 btn-primary w-full text-sm flex items-center justify-center gap-2">
+                  <button className="mt-4 btn-primary w-full text-sm flex items-center justify-center gap-2 hover:-translate-y-1 transition-transform" style={{ boxShadow: '0 4px 15px rgba(0,229,255,0.2)' }}>
                     <CheckCircle size={14} /> SCHEDULE MAINTENANCE
                   </button>
                 </div>

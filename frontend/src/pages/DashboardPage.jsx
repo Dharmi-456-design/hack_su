@@ -2,244 +2,426 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ANALYTICS, MACHINES, ALERTS, PRODUCTION_DATA, MONTHLY_PERFORMANCE, DEPARTMENT_STATS } from '../data/dummyData';
 import { useLive } from '../context/LiveDataContext';
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid } from 'recharts';
-import { Cpu, Users, AlertTriangle, TrendingUp, Package, Activity, ArrowUpRight, ArrowDownRight, Factory, Zap, Shield } from 'lucide-react';
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid
+} from 'recharts';
+import { Cpu, Users, AlertTriangle, Factory, ArrowUpRight, ArrowDownRight, Zap } from 'lucide-react';
 
-const MetricCard = ({ title, value, subtitle, icon: Icon, color = 'accent', trend, delay = 0 }) => {
-  const colors = {
-    accent: { text: 'text-factory-accent', bg: 'bg-factory-accent/10', border: 'border-factory-accent/30', glow: '0 0 20px #00D4FF22' },
-    green: { text: 'text-factory-green', bg: 'bg-factory-green/10', border: 'border-factory-green/30', glow: '0 0 20px #00FF9422' },
-    amber: { text: 'text-factory-amber', bg: 'bg-factory-amber/10', border: 'border-factory-amber/30', glow: '0 0 20px #FFB80022' },
-    red: { text: 'text-factory-red', bg: 'bg-factory-red/10', border: 'border-factory-red/30', glow: '0 0 20px #FF386022' },
-  };
-  const c = colors[color];
-  return (
-    <div className="factory-card animate-fade-up" style={{ animationDelay: `${delay}ms`, boxShadow: c.glow }}>
-      <div className="flex items-start justify-between mb-3">
-        <div className={`w-10 h-10 rounded-lg ${c.bg} border ${c.border} flex items-center justify-center`}>
-          <Icon size={18} className={c.text} />
-        </div>
-        {trend !== undefined && (
-          <div className={`flex items-center gap-1 text-xs font-mono ${trend >= 0 ? 'text-factory-green' : 'text-factory-red'}`}>
-            {trend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-            {Math.abs(trend)}%
-          </div>
-        )}
-      </div>
-      <div className={`font-display text-3xl font-bold ${c.text} mb-1`} style={{ textShadow: `0 0 20px ${c.glow}` }}>
-        {value}
-      </div>
-      <div className="font-body text-sm font-semibold text-factory-text">{title}</div>
-      {subtitle && <div className="font-mono text-xs text-factory-dim mt-1">{subtitle}</div>}
-    </div>
-  );
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+const T = {
+  bg:      '#020617',
+  panel:   '#0f172a',
+  card:    '#0c1628',
+  border:  '#1e293b',
+  accent:  '#00E5FF',
+  green:   '#22C55E',
+  amber:   '#F59E0B',
+  red:     '#EF4444',
+  text:    '#f1f5f9',
+  dim:     '#64748b',
+  // Typography
+  fontHead: "'Orbitron', sans-serif",   // Page titles, section headings, metric numbers
+  fontBody: "'Inter', sans-serif",      // Body text, nav, cards, metadata, charts
 };
 
-const MachineStatusRow = ({ m }) => {
-  const statusConfig = {
-    operational: { dot: 'bg-factory-green', badge: 'badge-operational', label: 'OPERATIONAL' },
-    warning: { dot: 'bg-factory-amber', badge: 'badge-warning', label: 'WARNING' },
-    critical: { dot: 'bg-factory-red', badge: 'badge-critical', label: 'CRITICAL' },
-    offline: { dot: 'bg-gray-500', badge: 'badge-offline', label: 'OFFLINE' },
-  };
-  const s = statusConfig[m.status];
-  return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-factory-border/50 last:border-0">
-      <div className={`status-dot ${s.dot}`}></div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-factory-text truncate">{m.name}</div>
-        <div className="font-mono text-xs text-factory-dim">{m.location}</div>
-      </div>
-      <div className="text-right">
-        <div className="font-mono text-xs text-factory-dim">{m.temperature}°C</div>
-        <span className={s.badge}>{s.label}</span>
-      </div>
-      <div className="w-16">
-        <div className="text-right font-mono text-xs text-factory-dim mb-1">{m.efficiency}%</div>
-        <div className="h-1 bg-factory-border rounded overflow-hidden">
-          <div className={`h-full rounded ${m.efficiency > 80 ? 'bg-factory-green' : m.efficiency > 60 ? 'bg-factory-amber' : 'bg-factory-red'}`}
-            style={{ width: `${m.efficiency}%` }}></div>
-        </div>
-      </div>
-    </div>
-  );
+// ─── Shared card style ───────────────────────────────────────────────────────
+const cardStyle = {
+  background: T.card,
+  border: `1px solid ${T.border}`,
+  borderRadius: 16,
+  padding: 20,
+  position: 'relative',
+  overflow: 'hidden',
+  transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
 };
 
-const CustomTooltip = ({ active, payload, label }) => {
+// ─── Modern Glassmorphism Tooltip ─────────────────────────────────────────────
+const ModernTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-factory-panel border border-factory-border rounded p-3 font-mono text-xs">
-      <div className="text-factory-dim mb-2">{label}</div>
+    <div style={{
+      background: '#0c1628ee',
+      backdropFilter: 'blur(14px)',
+      border: `1px solid ${T.border}`,
+      borderRadius: 12,
+      padding: '10px 14px',
+      boxShadow: `0 16px 40px rgba(0,0,0,0.6), 0 0 20px rgba(0,229,255,0.08)`,
+      minWidth: 150,
+    }}>
+      {/* Tooltip label — Orbitron uppercase */}
+      <div style={{ color: T.dim, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, fontFamily: T.fontHead }}>
+        {label}
+      </div>
       {payload.map((p, i) => (
-        <div key={i} className="flex gap-2" style={{ color: p.color }}>
-          <span>{p.name}:</span><span className="font-bold">{p.value}</span>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, boxShadow: `0 0 8px ${p.color}` }} />
+          {/* Series name — Inter body */}
+          <span style={{ color: T.dim, fontSize: 12, fontFamily: T.fontBody }}>{p.name}:</span>
+          {/* Value — Orbitron for emphasis */}
+          <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, marginLeft: 'auto', fontFamily: T.fontHead }}>{p.value}</span>
         </div>
       ))}
     </div>
   );
 };
 
+// ─── Metric Card ─────────────────────────────────────────────────────────────
+const COLORS_MAP = {
+  accent: { text: T.accent, bg: 'rgba(0,229,255,0.08)',  border: 'rgba(0,229,255,0.25)', glow: '0 0 30px rgba(0,229,255,0.15)' },
+  green:  { text: T.green,  bg: 'rgba(34,197,94,0.08)',  border: 'rgba(34,197,94,0.25)', glow: '0 0 30px rgba(34,197,94,0.15)' },
+  amber:  { text: T.amber,  bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', glow: '0 0 30px rgba(245,158,11,0.15)' },
+  red:    { text: T.red,    bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.25)', glow: '0 0 30px rgba(239,68,68,0.15)' },
+};
+
+const MetricCard = ({ title, value, subtitle, icon: Icon, color = 'accent', trend, delay = 0 }) => {
+  const [hovered, setHovered] = useState(false);
+  const c = COLORS_MAP[color];
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        ...cardStyle,
+        boxShadow: hovered ? `${c.glow}, 0 20px 40px rgba(0,0,0,0.4)` : '0 4px 20px rgba(0,0,0,0.3)',
+        borderColor: hovered ? c.border : T.border,
+        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
+        animationDelay: `${delay}ms`,
+      }}
+    >
+      {/* Top shimmer */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${c.text}55, transparent)` }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: c.bg, border: `1px solid ${c.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: hovered ? `0 0 20px ${c.text}33` : 'none',
+          transition: 'box-shadow 0.3s ease',
+        }}>
+          <Icon size={20} color={c.text} />
+        </div>
+        {trend !== undefined && (
+          // Trend badge — Inter (metadata)
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: trend >= 0 ? T.green : T.red, fontFamily: T.fontBody }}>
+            {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+            {Math.abs(trend)}%
+          </div>
+        )}
+      </div>
+
+      {/* Big metric value — Orbitron bold */}
+      <div style={{ fontFamily: T.fontHead, fontSize: 32, fontWeight: 700, color: c.text, marginBottom: 6, textShadow: `0 0 20px ${c.text}55`, lineHeight: 1 }}>
+        {value}
+      </div>
+      {/* Card title — Inter medium */}
+      <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 4 }}>{title}</div>
+      {/* Subtitle / metadata — Inter light */}
+      {subtitle && <div style={{ fontFamily: T.fontBody, fontSize: 11, fontWeight: 300, color: T.dim }}>{subtitle}</div>}
+    </div>
+  );
+};
+
+// ─── Machine Status Row ───────────────────────────────────────────────────────
+const statusCfg = {
+  operational: { dot: T.green,   label: 'OPERATIONAL', bg: 'rgba(34,197,94,0.08)',  border: 'rgba(34,197,94,0.2)' },
+  warning:     { dot: T.amber,   label: 'WARNING',     bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
+  critical:    { dot: T.red,     label: 'CRITICAL',    bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.2)' },
+  offline:     { dot: '#475569', label: 'OFFLINE',     bg: 'rgba(71,85,105,0.08)', border: 'rgba(71,85,105,0.2)' },
+};
+
+const MachineRow = ({ m }) => {
+  const s = statusCfg[m.status];
+  const effColor = m.efficiency > 80 ? T.green : m.efficiency > 60 ? T.amber : T.red;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `1px solid ${T.border}22` }}>
+      <div style={{ width: 10, height: 10, borderRadius: '50%', background: s.dot, boxShadow: `0 0 8px ${s.dot}`, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Machine name — Inter medium */}
+        <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+        {/* Location — Inter light metadata */}
+        <div style={{ fontFamily: T.fontBody, fontSize: 11, fontWeight: 300, color: T.dim }}>{m.location}</div>
+      </div>
+      <div style={{ textAlign: 'right', marginRight: 8 }}>
+        {/* Temperature — Inter */}
+        <div style={{ fontFamily: T.fontBody, fontSize: 11, color: T.dim }}>{m.temperature}°C</div>
+        {/* Status badge — Orbitron for industrial feel */}
+        <div style={{ display: 'inline-block', marginTop: 3, padding: '2px 8px', borderRadius: 20, background: s.bg, border: `1px solid ${s.border}`, fontSize: 8, fontWeight: 700, color: s.dot, fontFamily: T.fontHead, letterSpacing: 1, textTransform: 'uppercase' }}>
+          {s.label}
+        </div>
+      </div>
+      <div style={{ width: 60 }}>
+        {/* Efficiency % — Orbitron */}
+        <div style={{ fontFamily: T.fontHead, fontSize: 10, color: effColor, textAlign: 'right', marginBottom: 4 }}>{m.efficiency}%</div>
+        <div style={{ height: 4, background: T.border, borderRadius: 99 }}>
+          <div style={{ height: '100%', width: `${m.efficiency}%`, background: effColor, borderRadius: 99, boxShadow: `0 0 8px ${effColor}88`, transition: 'width 0.5s ease' }} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Section Card Wrapper ─────────────────────────────────────────────────────
+const SectionCard = ({ children, style = {} }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        ...cardStyle,
+        boxShadow: hovered ? '0 20px 50px rgba(0,0,0,0.5), 0 0 20px rgba(0,229,255,0.05)' : '0 4px 20px rgba(0,0,0,0.3)',
+        borderColor: hovered ? 'rgba(0,229,255,0.2)' : T.border,
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        ...style,
+      }}
+    >
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(0,229,255,0.3), transparent)' }} />
+      {children}
+    </div>
+  );
+};
+
+// ─── Section Heading helper ───────────────────────────────────────────────────
+const SectionTitle = ({ children }) => (
+  <div style={{ fontFamily: T.fontHead, fontSize: 10, fontWeight: 600, color: T.dim, textTransform: 'uppercase', letterSpacing: 2.5, marginBottom: 16 }}>
+    {children}
+  </div>
+);
+
+// ─── View-All Link helper ─────────────────────────────────────────────────────
+const ViewAll = ({ to }) => (
+  <NavLink to={to} style={{ fontFamily: T.fontHead, fontSize: 9, color: T.accent, border: `1px solid ${T.accent}44`, padding: '4px 12px', borderRadius: 6, textDecoration: 'none', letterSpacing: 1, textTransform: 'uppercase' }}>
+    View All ›
+  </NavLink>
+);
+
+// ─── Dashboard Page ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const [time, setTime] = useState(new Date());
-  const { machines, alerts, analytics, lastUpdate, unreadCount } = useLive();
+  const { machines, alerts, analytics } = useLive();
+
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
   const unread = alerts.filter(a => !a.read);
+  const axisStyle = { fill: T.dim, fontSize: 11, fontFamily: T.fontBody };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between animate-slide-in">
+    <div style={{ background: T.bg, minHeight: '100vh', padding: '0 0 40px 0' }}>
+
+      {/* ── Page Header ── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 className="page-title">COMMAND CENTER</h1>
-          <p className="text-factory-dim font-body text-sm mt-1">Real-time factory intelligence dashboard</p>
+          {/* Page title — Orbitron bold, uppercase, neon glow */}
+          <h1 style={{
+            fontFamily: T.fontHead, fontSize: 22, fontWeight: 900,
+            color: T.accent, letterSpacing: 3, margin: 0, textTransform: 'uppercase',
+            textShadow: `0 0 25px ${T.accent}66, 0 0 50px ${T.accent}22`,
+          }}>
+            Command Center
+          </h1>
+          {/* Subtitle — Inter light */}
+          <p style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 300, color: T.dim, margin: '6px 0 0 0' }}>
+            Real-time AI-powered factory intelligence dashboard
+          </p>
         </div>
-        <div className="text-right">
-          <div className="font-display text-2xl text-factory-accent font-bold">{time.toLocaleTimeString('en-IN')}</div>
-          <div className="font-mono text-xs text-factory-dim">{time.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        </div>
-      </div>
-
-      {/* Status banner */}
-      <div className="flex items-center gap-4 bg-factory-panel border border-factory-border rounded-lg px-4 py-3 animate-fade-up">
-        <div className="flex items-center gap-2">
-          <div className="status-dot bg-factory-green"></div>
-          <span className="font-mono text-xs text-factory-green">ALL SYSTEMS MONITORED</span>
-        </div>
-        <div className="h-4 w-px bg-factory-border"></div>
-        <div className="flex items-center gap-2">
-          <Activity size={12} className="text-factory-amber" />
-          <span className="font-mono text-xs text-factory-amber">{ANALYTICS.critical + ANALYTICS.warning} MACHINES NEED ATTENTION</span>
-        </div>
-        <div className="h-4 w-px bg-factory-border"></div>
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={12} className="text-factory-red" />
-          <span className="font-mono text-xs text-factory-red">{unread.length} UNREAD ALERTS</span>
-        </div>
-        <div className="ml-auto font-mono text-xs text-factory-dim">SHIFT: 08:00 — 16:00</div>
-      </div>
-
-      {/* Metrics row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Machines Online" value={`${machines.filter(m=>m.status==='operational').length}/${machines.length}`} subtitle={`${machines.filter(m=>m.status==='critical').length} critical · ${machines.filter(m=>m.status==='warning').length} warning`} icon={Cpu} color="accent" trend={5} delay={0} />
-        <MetricCard title="Today's Production" value={analytics.productionToday} subtitle={`Target: ${analytics.productionTarget} units`} icon={Factory} color="green" trend={-7.6} delay={50} />
-        <MetricCard title="Active Workers" value={`${analytics.activeWorkers}/${analytics.totalWorkers}`} subtitle="1 on leave" icon={Users} color="amber" trend={0} delay={100} />
-        <MetricCard title="Active Alerts" value={unread.length} subtitle={`${analytics.inventoryAlerts} inventory · ${machines.filter(m=>m.status==='critical').length} critical`} icon={AlertTriangle} color="red" delay={150} />
-      </div>
-
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Production chart */}
-        <div className="lg:col-span-2 factory-card animate-fade-up stagger-3">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="section-title">PRODUCTION OVERVIEW</div>
-              <div className="text-sm font-medium text-factory-text mt-1">March 2026 — Daily Performance</div>
-            </div>
-            <NavLink to="/production" className="btn-secondary text-xs py-1 px-3">VIEW ALL</NavLink>
+        <div style={{ textAlign: 'right' }}>
+          {/* Live clock — Orbitron */}
+          <div style={{ fontFamily: T.fontHead, fontSize: 26, fontWeight: 700, color: T.accent, textShadow: `0 0 20px ${T.accent}66` }}>
+            {time.toLocaleTimeString('en-IN')}
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={PRODUCTION_DATA} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+          {/* Date — Inter light metadata */}
+          <div style={{ fontFamily: T.fontBody, fontSize: 11, fontWeight: 300, color: T.dim, marginTop: 3 }}>
+            {time.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Status Banner ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
+        background: T.panel, border: `1px solid ${T.border}`,
+        borderRadius: 12, padding: '10px 20px', marginBottom: 24,
+      }}>
+        {[
+          { dot: T.green,  text: 'All Systems Monitored',                                       textColor: T.green },
+          { icon: <Zap size={13} color={T.amber} />, text: `${ANALYTICS.critical + ANALYTICS.warning} Machines Need Attention`, textColor: T.amber },
+          { icon: <AlertTriangle size={13} color={T.red} />, text: `${unread.length} Unread Alerts`, textColor: T.red },
+        ].map((item, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <div style={{ width: 1, height: 20, background: T.border }} />}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {item.dot
+                ? <div style={{ width: 9, height: 9, borderRadius: '50%', background: item.dot, boxShadow: `0 0 10px ${item.dot}`, animation: 'pulse 2s infinite' }} />
+                : item.icon}
+              {/* Status labels — Inter medium */}
+              <span style={{ fontFamily: T.fontBody, fontSize: 12, fontWeight: 500, color: item.textColor }}>{item.text}</span>
+            </div>
+          </React.Fragment>
+        ))}
+        {/* Shift info — Orbitron small */}
+        <div style={{ marginLeft: 'auto', fontFamily: T.fontHead, fontSize: 9, fontWeight: 600, color: T.dim, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+          Shift: 08:00 — 16:00
+        </div>
+      </div>
+
+      {/* ── KPI Metric Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <MetricCard title="Machines Online"  value={`${machines.filter(m => m.status === 'operational').length}/${machines.length}`}
+          subtitle={`${machines.filter(m => m.status === 'critical').length} critical · ${machines.filter(m => m.status === 'warning').length} warning`}
+          icon={Cpu} color="accent" trend={5} delay={0} />
+        <MetricCard title="Today's Output"   value={analytics.productionToday}
+          subtitle={`Target: ${analytics.productionTarget} units`}
+          icon={Factory} color="green" trend={-7.6} delay={60} />
+        <MetricCard title="Active Workers"   value={`${analytics.activeWorkers}/${analytics.totalWorkers}`}
+          subtitle="1 on leave today"
+          icon={Users} color="amber" trend={0} delay={120} />
+        <MetricCard title="Active Alerts"    value={unread.length}
+          subtitle={`${analytics.inventoryAlerts} inventory · ${machines.filter(m => m.status === 'critical').length} critical`}
+          icon={AlertTriangle} color="red" delay={180} />
+      </div>
+
+      {/* ── Production Chart + Radar ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+
+        <SectionCard>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <SectionTitle>Production Overview</SectionTitle>
+              {/* Chart subtitle — Inter */}
+              <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -8 }}>March 2026 — Daily Output vs Target</div>
+            </div>
+            <ViewAll to="/production" />
+          </div>
+          <ResponsiveContainer width="100%" height={210}>
+            <AreaChart data={PRODUCTION_DATA} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <defs>
-                <linearGradient id="targetGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#00D4FF" stopOpacity={0} />
+                <linearGradient id="gTarget" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor={T.accent} stopOpacity={0.15} />
+                  <stop offset="95%" stopColor={T.accent} stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="actualGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00FF94" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#00FF94" stopOpacity={0} />
+                <linearGradient id="gActual" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor={T.green} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={T.green} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-              <XAxis dataKey="date" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-              <YAxis tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="target" stroke="#00D4FF" strokeWidth={1.5} strokeDasharray="5 5" fill="url(#targetGrad)" name="Target" />
-              <Area type="monotone" dataKey="actual" stroke="#00FF94" strokeWidth={2} fill="url(#actualGrad)" name="Actual" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="date" tick={axisStyle} tickLine={false} axisLine={false} dy={8} />
+              <YAxis tick={axisStyle} tickLine={false} axisLine={false} />
+              <Tooltip content={<ModernTooltip />} cursor={{ stroke: `${T.accent}30`, strokeWidth: 2, strokeDasharray: '4 4' }} />
+              <Area type="monotone" dataKey="target" stroke={T.accent} strokeWidth={1.5} strokeDasharray="6 3" fill="url(#gTarget)" name="Target" dot={false} />
+              <Area type="monotone" dataKey="actual" stroke={T.green} strokeWidth={2.5} fill="url(#gActual)" name="Actual" dot={false}
+                activeDot={{ r: 6, fill: T.green, stroke: T.bg, strokeWidth: 2, filter: `drop-shadow(0 0 8px ${T.green})` }} />
             </AreaChart>
           </ResponsiveContainer>
-          <div className="flex gap-4 mt-2">
-            <div className="flex items-center gap-1.5 text-xs font-mono text-factory-dim">
-              <div className="w-6 h-px border border-dashed border-factory-accent"></div> Target
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-mono text-factory-dim">
-              <div className="w-6 h-0.5 bg-factory-green rounded"></div> Actual
-            </div>
+          <div style={{ display: 'flex', gap: 20, marginTop: 10 }}>
+            {[{ color: T.accent, label: 'Target', dash: true }, { color: T.green, label: 'Actual' }].map(l => (
+              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 22, height: 2, borderRadius: 2, background: l.color, opacity: 0.85 }} />
+                {/* Legend labels — Inter */}
+                <span style={{ fontFamily: T.fontBody, fontSize: 11, color: T.dim }}>{l.label}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        </SectionCard>
 
-        {/* Department radar */}
-        <div className="factory-card animate-fade-up stagger-4">
-          <div className="section-title mb-4">DEPT EFFICIENCY</div>
-          <ResponsiveContainer width="100%" height={200}>
+        <SectionCard>
+          <SectionTitle>Dept Efficiency</SectionTitle>
+          <ResponsiveContainer width="100%" height={220}>
             <RadarChart data={DEPARTMENT_STATS}>
-              <PolarGrid stroke="#1E3A5F" />
-              <PolarAngleAxis dataKey="dept" tick={{ fill: '#5A7A9A', fontSize: 9, fontFamily: 'Share Tech Mono' }} />
-              <Radar name="Efficiency" dataKey="efficiency" stroke="#00D4FF" fill="#00D4FF" fillOpacity={0.1} strokeWidth={2} />
+              <PolarGrid stroke={T.border} />
+              <PolarAngleAxis dataKey="dept" tick={{ fill: T.dim, fontSize: 10, fontFamily: T.fontBody }} />
+              <Radar name="Efficiency" dataKey="efficiency" stroke={T.accent} fill={T.accent} fillOpacity={0.12} strokeWidth={2}
+                dot={{ r: 4, fill: T.accent, stroke: T.bg, strokeWidth: 2 }} />
+              <Tooltip content={<ModernTooltip />} />
             </RadarChart>
           </ResponsiveContainer>
-        </div>
+        </SectionCard>
       </div>
 
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Machine status */}
-        <div className="factory-card animate-fade-up stagger-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="section-title">MACHINE STATUS</div>
-            <NavLink to="/machines" className="btn-secondary text-xs py-1 px-3">VIEW ALL</NavLink>
-          </div>
-          <div>{machines.slice(0, 6).map(m => <MachineStatusRow key={m.id} m={m} />)}</div>
-        </div>
+      {/* ── Machine Status + Alerts ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
 
-        {/* Recent alerts */}
-        <div className="factory-card animate-fade-up stagger-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="section-title">RECENT ALERTS</div>
-            <NavLink to="/alerts" className="btn-secondary text-xs py-1 px-3">VIEW ALL</NavLink>
+        <SectionCard>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <SectionTitle>Machine Status</SectionTitle>
+            <ViewAll to="/machines" />
           </div>
-          <div className="space-y-3">
-            {unread.slice(0, 5).map(alert => (
-              <div key={alert.id} className={`border rounded-lg p-3 ${alert.type === 'critical' ? 'border-factory-red/40 bg-factory-red/5' : alert.type === 'warning' ? 'border-factory-amber/40 bg-factory-amber/5' : 'border-factory-border'}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-factory-text truncate">{alert.title}</div>
-                    <div className="font-mono text-xs text-factory-dim mt-0.5">{alert.message.substring(0, 70)}...</div>
+          <div>
+            {machines.slice(0, 6).map(m => <MachineRow key={m.id} m={m} />)}
+          </div>
+        </SectionCard>
+
+        <SectionCard>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <SectionTitle>Recent Alerts</SectionTitle>
+            <ViewAll to="/alerts" />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {unread.slice(0, 5).map(alert => {
+              const ac = alert.type === 'critical' ? T.red : alert.type === 'warning' ? T.amber : T.green;
+              return (
+                <div key={alert.id} style={{
+                  background: `${ac}08`, border: `1px solid ${ac}25`,
+                  borderRadius: 10, padding: '10px 12px', borderLeft: `3px solid ${ac}`,
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* Alert title — Inter medium */}
+                      <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{alert.title}</div>
+                      {/* Alert message — Inter light */}
+                      <div style={{ fontFamily: T.fontBody, fontSize: 11, fontWeight: 300, color: T.dim, marginTop: 2 }}>{alert.message?.substring(0, 65)}...</div>
+                    </div>
+                    {/* Badge — Orbitron */}
+                    <div style={{ padding: '2px 8px', borderRadius: 20, background: `${ac}15`, border: `1px solid ${ac}30`, fontSize: 8, fontWeight: 700, color: ac, fontFamily: T.fontHead, letterSpacing: 1, textTransform: 'uppercase', flexShrink: 0 }}>
+                      {alert.type}
+                    </div>
                   </div>
-                  <span className={alert.type === 'critical' ? 'badge-critical' : alert.type === 'warning' ? 'badge-warning' : 'badge-operational'}>
-                    {alert.type.toUpperCase()}
-                  </span>
+                  {/* Timestamp — Inter light */}
+                  <div style={{ fontFamily: T.fontBody, fontSize: 10, fontWeight: 300, color: T.dim, marginTop: 6 }}>{alert.time}</div>
                 </div>
-                <div className="font-mono text-xs text-factory-dim mt-2">{alert.time}</div>
+              );
+            })}
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* ── 6-Month Bar Chart ── */}
+      <SectionCard>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <SectionTitle>6-Month Production Trend</SectionTitle>
+            {/* Subtitle — Inter */}
+            <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -8 }}>Production units vs efficiency %</div>
+          </div>
+          <div style={{ display: 'flex', gap: 16 }}>
+            {[{ color: T.accent, label: 'Production' }, { color: T.green, label: 'Efficiency %' }].map(l => (
+              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: l.color }} />
+                <span style={{ fontFamily: T.fontBody, fontSize: 11, color: T.dim }}>{l.label}</span>
               </div>
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Monthly performance */}
-      <div className="factory-card animate-fade-up">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="section-title">6-MONTH PRODUCTION TREND</div>
-            <div className="text-sm font-medium text-factory-text mt-1">Production units vs efficiency %</div>
-          </div>
-        </div>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={MONTHLY_PERFORMANCE} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
-            <XAxis dataKey="month" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-            <YAxis yAxisId="left" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar yAxisId="left" dataKey="production" fill="#00D4FF" fillOpacity={0.6} name="Production" radius={[3, 3, 0, 0]} />
-            <Bar yAxisId="right" dataKey="efficiency" fill="#00FF94" fillOpacity={0.6} name="Efficiency %" radius={[3, 3, 0, 0]} />
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={MONTHLY_PERFORMANCE} margin={{ top: 5, right: 10, left: -20, bottom: 0 }} barGap={4}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+            <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} dy={8} />
+            <YAxis yAxisId="left"  tick={axisStyle} tickLine={false} axisLine={false} />
+            <YAxis yAxisId="right" orientation="right" tick={axisStyle} tickLine={false} axisLine={false} />
+            <Tooltip content={<ModernTooltip />} cursor={{ fill: 'rgba(0,229,255,0.04)' }} />
+            <Bar yAxisId="left"  dataKey="production" fill={T.accent} fillOpacity={0.85} name="Production"   radius={[6, 6, 0, 0]}
+              activeBar={{ fill: T.accent, fillOpacity: 1, stroke: T.accent, strokeWidth: 1, filter: `drop-shadow(0 0 12px ${T.accent})` }} />
+            <Bar yAxisId="right" dataKey="efficiency"  fill={T.green}  fillOpacity={0.85} name="Efficiency %"  radius={[6, 6, 0, 0]}
+              activeBar={{ fill: T.green, fillOpacity: 1, stroke: T.green, strokeWidth: 1, filter: `drop-shadow(0 0 12px ${T.green})` }} />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </SectionCard>
+
     </div>
   );
 }

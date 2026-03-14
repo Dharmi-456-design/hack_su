@@ -139,22 +139,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Worker productivity ranking */}
-      <div className="factory-card animate-fade-up stagger-5">
-        <div className="flex items-center gap-2 mb-4">
-          <LiveChartIndicator />
-          <div className="section-title mb-0 relative top-[1px]">LIVE WORKER PRODUCTIVITY RANKING</div>
-        </div>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={[...liveWorkers].sort((a, b) => b.performance - a.performance)} layout="vertical" margin={{ top: 0, right: 20, left: 80, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} />
-            <YAxis dataKey="name" type="category" tick={{ fill: '#5A7A9A', fontSize: 10, fontFamily: 'Share Tech Mono' }} width={80} />
-            <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
-            <Bar dataKey="performance" fill="#00D4FF" fillOpacity={0.7} name="Performance %" radius={[0, 3, 3, 0]} isAnimationActive={false} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
     </div>
   );
 }

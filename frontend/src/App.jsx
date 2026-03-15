@@ -21,9 +21,8 @@ import ScheduleMaintenancePage from './pages/ScheduleMaintenancePage';
 import ChatbotPage from './pages/ChatbotPage';
 import EnergyPage from './pages/EnergyPage';
 import CostRevenuePage from './pages/CostRevenuePage';
-
-import AdminPage from './pages/AdminPage'; // Added 
-
+import AdminPage from './pages/AdminPage';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <div>Loading...</div>;
@@ -60,26 +59,35 @@ function AppRoutes() {
   );
 }
 
+function ThemeAwareToaster() {
+  const { theme } = useTheme();
+  return (
+    <Toaster
+      position="top-right"
+      toastOptions={{
+        style: {
+          background: theme === 'dark' ? '#111E32' : '#FFFFFF',
+          color: theme === 'dark' ? '#C8DCF0' : '#0F172A',
+          border: `1px solid ${theme === 'dark' ? '#1E3A5F' : '#E2E8F0'}`,
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 500,
+        },
+      }}
+    />
+  );
+}
+
 export default function App() {
   return (
-    <AuthProvider>
-      <LiveDataProvider>
-        <BrowserRouter>
-          <AppRoutes />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: '#111E32',
-                color: '#C8DCF0',
-                border: '1px solid #1E3A5F',
-                fontFamily: 'Rajdhani, sans-serif',
-                fontWeight: 500,
-              },
-            }}
-          />
-        </BrowserRouter>
-      </LiveDataProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <LiveDataProvider>
+          <BrowserRouter>
+            <AppRoutes />
+            <ThemeAwareToaster />
+          </BrowserRouter>
+        </LiveDataProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -7,23 +7,9 @@ import {
   LayoutDashboard, Cpu, BarChart3, Package, Users, Bell, BellOff,
   LineChart, FileText, ShieldCheck, Wrench, LogOut,
   ChevronLeft, ChevronRight, Zap, Factory, Volume2, VolumeX,
-  Bot, DollarSign, Activity, Shield
+  Bot, DollarSign, Activity, Shield, Sun, Moon
 } from 'lucide-react';
-
-const T = {
-  bg:      '#0B1420',
-  panel:   '#111C2D',
-  card:    '#111C2D',
-  border:  '#1F2F46',
-  accent:  '#00E5FF',
-  green:   '#00FF9C',
-  amber:   '#FFC857',
-  red:     '#FF4D4D',
-  text:    '#FFFFFF',
-  dim:     '#A0B3C6',
-  fontHead: "'Inter', sans-serif",
-  fontBody: "'Inter', sans-serif",
-};
+import { useTheme } from '../../context/ThemeContext';
 
 const NAV_ITEMS = [
   { path: '/',             icon: LayoutDashboard, label: 'Dashboard',     exact: true },
@@ -39,12 +25,38 @@ const NAV_ITEMS = [
   { path: '/energy',       icon: Zap,             label: 'Energy Monitor' },
   { path: '/cost-revenue', icon: DollarSign,      label: 'Cost & Revenue' },
   { path: '/chatbot',      icon: Bot,             label: 'AI Assistant' },
-
   { path: '/reports',      icon: FileText,        label: 'Reports' },
 ];
 
 export default function Layout() {
+  const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+
+  const T = theme === 'dark' ? {
+    bg:      '#0B1420',
+    panel:   '#111C2D',
+    card:    '#111C2D',
+    border:  '#1F2F46',
+    accent:  '#00E5FF',
+    green:   '#00FF9C',
+    amber:   '#FFC857',
+    red:     '#FF4D4D',
+    text:    '#FFFFFF',
+    dim:     '#A0B3C6',
+  } : {
+    bg:      '#0F172A',
+    panel:   '#1E293B',
+    card:    '#1E293B',
+    border:  '#334155',
+    accent:  '#38BDF8',
+    green:   '#22C55E',
+    amber:   '#F59E0B',
+    red:     '#EF4444',
+    text:    '#F1F5F9',
+    dim:     '#94A3B8',
+  };
+ T.fontHead = "'Inter', sans-serif";
+ T.fontBody = "'Inter', sans-serif";
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { unreadCount, lastUpdate, soundEnabled, setSoundEnabled, notifEnabled, setNotifEnabled } = useLive();
@@ -245,6 +257,15 @@ export default function Layout() {
               <Zap size={13} />
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>SHIFT: MORNING</span>
             </div>
+
+            {/* Theme toggle */}
+            <button onClick={toggleTheme} style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8,
+              color: T.accent, transition: 'all 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }} title={theme === 'dark' ? 'Switch to Day Mode' : 'Switch to Night Mode'}>
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
 
             {/* Sound toggle */}
             <button onClick={() => setSoundEnabled(p => !p)} style={{

@@ -2,15 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Night Mode - Deep Midnight */
+  --factory-bg: #05080E;
+  --factory-panel: #0A0F1A;
+  --factory-card: #0A0F1A;
+  --factory-border: #151D2A;
+  --factory-accent: #00E5FF;
+  --factory-green: #00FF9C;
+  --factory-amber: #FFC857;
+  --factory-red: #FF4D4D;
+  --factory-text: #FFFFFF;
+  --factory-dim: #73899E;
+}
+
+[data-theme='light'] {
+  /* Day Mode - Original Industrial Dark */
+  --factory-bg: #0B1420;
+  --factory-panel: #111C2D;
+  --factory-card: #111C2D;
+  --factory-border: #1F2F46;
+  --factory-accent: #00D4FF;
+  --factory-green: #00FF94;
+  --factory-amber: #FFB800;
+  --factory-red: #FF3860;
+  --factory-text: #FFFFFF;
+  --factory-dim: #A0B3C6;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
   }
   
   body {
-    background-color: #0B1420; /* Deep navy / dark blue */
-    color: #FFFFFF;
-    font-family: 'Inter', sans-serif; /* Modern sans-serif */
+    background-color: var(--factory-bg);
+    color: var(--factory-text);
+    font-family: 'Inter', sans-serif;
     overflow-x: hidden;
   }
 
@@ -19,14 +47,14 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #0B1420;
+    background: var(--factory-bg);
   }
   ::-webkit-scrollbar-thumb {
-    background: #1F2F46;
+    background: var(--factory-border);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #A0B3C6;
+    background: var(--factory-dim);
   }
 }
 
@@ -156,12 +184,12 @@
   /* Tables */
   .saas-table {
     @apply w-full text-sm font-body text-left border-collapse;
-    background-color: #0B1420;
+    background-color: var(--factory-bg);
   }
   .saas-table th {
     @apply py-3 px-4 sticky top-0 uppercase tracking-wider;
-    background-color: #111C2D;
-    color: #FFFFFF;
+    background-color: var(--factory-panel);
+    color: var(--factory-text);
     font-size: 11px;
     font-weight: 600;
     border-bottom: 1px solid #1E2F46;

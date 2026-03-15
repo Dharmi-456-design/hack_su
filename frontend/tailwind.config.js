@@ -5,17 +5,17 @@ export default {
     extend: {
       colors: {
         factory: {
-          bg: '#0B1420',       // Main deep navy background
-          panel: '#111C2D',    // Secondary panel background
-          card: '#111C2D',     // Card background
-          border: '#1F2F46',   // Darker borders for a modern look
-          accent: '#00E5FF',   // Neon cyan accent
-          green: '#00FF9C',    // Success / Safe
-          amber: '#FFC857',    // Warning
-          red: '#FF4D4D',      // Critical
-          muted: '#A0B3C6',    // Muted text color
-          text: '#FFFFFF',     // Primary text
-          dim: '#A0B3C6',      // Secondary text / subtitles
+          bg: 'var(--factory-bg)',
+          panel: 'var(--factory-panel)',
+          card: 'var(--factory-card)',
+          border: 'var(--factory-border)',
+          accent: 'var(--factory-accent)',
+          green: 'var(--factory-green)',
+          amber: 'var(--factory-amber)',
+          red: 'var(--factory-red)',
+          muted: 'var(--factory-dim)',
+          text: 'var(--factory-text)',
+          dim: 'var(--factory-dim)',
         }
       },
       fontFamily: {

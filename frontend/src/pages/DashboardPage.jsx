@@ -32,7 +32,7 @@ const cardStyle = {
   background: T.card,
   border: `1px solid ${T.border}`,
   borderRadius: 16,
-  padding: 20,
+  padding: 12,
   position: 'relative',
   overflow: 'hidden',
   transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
@@ -187,7 +187,7 @@ const SectionCard = ({ children, style = {} }) => {
 
 // ─── Section Heading helper ───────────────────────────────────────────────────
 const SectionTitle = ({ children }) => (
-  <div style={{ fontFamily: T.fontHead, fontSize: 10, fontWeight: 600, color: T.dim, textTransform: 'uppercase', letterSpacing: 2.5, marginBottom: 16 }}>
+  <div style={{ fontFamily: T.fontHead, fontSize: 10, fontWeight: 600, color: T.dim, textTransform: 'uppercase', letterSpacing: 2.5, marginBottom: 8 }}>
     {children}
   </div>
 );
@@ -237,10 +237,10 @@ export default function DashboardPage() {
   const axisStyle = { fill: T.dim, fontSize: 11, fontFamily: T.fontBody };
 
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', padding: '0 0 40px 0' }}>
+    <div style={{ background: T.bg, minHeight: '100vh', padding: '0 0 5px 0' }}>
 
       {/* ── Page Header ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
         <div>
           {/* Page title — Orbitron bold, uppercase, neon glow */}
           <h1 style={{
@@ -271,7 +271,7 @@ export default function DashboardPage() {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
         background: T.panel, border: `1px solid ${T.border}`,
-        borderRadius: 12, padding: '10px 20px', marginBottom: 24,
+        borderRadius: 12, padding: '4px 12px', marginBottom: 8,
       }}>
         {[
           { dot: T.green,  text: 'All Systems Monitored',                                       textColor: T.green },
@@ -296,7 +296,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── KPI Metric Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8, marginBottom: 8 }}>
         <MetricCard title="Total Machines"  value={machines.length}
           subtitle={`${machines.filter(m => m.status === 'Running').length} running · ${machines.filter(m => m.status === 'Maintenance').length} maintenance`}
           icon={Cpu} color="accent" trend={0} delay={0} />
@@ -315,15 +315,15 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Production Chart + Radar ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 8, marginBottom: 12 }}>
 
         <SectionCard>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div>
               <LiveChartIndicator />
               <SectionTitle>Production Overview</SectionTitle>
               {/* Chart subtitle — Inter */}
-              <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -8 }}>Live Output Tracking vs Target</div>
+              <div style={{ fontFamily: T.fontBody, fontSize: 13, fontWeight: 400, color: T.text, marginTop: -4 }}>Live Output Tracking vs Target</div>
             </div>
             <ViewAll to="/production" />
           </div>
@@ -375,7 +375,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Machine Status + Alerts ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 12, marginBottom: 16 }}>
 
         <SectionCard>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -422,7 +422,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Safety Monitoring ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 12, marginBottom: 16 }}>
         <SectionCard>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>

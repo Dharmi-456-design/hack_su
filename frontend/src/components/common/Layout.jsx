@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Cpu, BarChart3, Package, Users, Bell, BellOff,
   LineChart, FileText, ShieldCheck, Wrench, LogOut,
   ChevronLeft, ChevronRight, Zap, Factory, Volume2, VolumeX,
-  Bot, DollarSign, Activity, Shield, Sun, Moon
+  Bot, DollarSign, Activity, Shield, Sun, Moon, FlaskConical
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -59,7 +59,10 @@ export default function Layout() {
  T.fontBody = "'Inter', sans-serif";
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { unreadCount, lastUpdate, soundEnabled, setSoundEnabled, notifEnabled, setNotifEnabled } = useLive();
+  const { 
+    unreadCount, lastUpdate, soundEnabled, setSoundEnabled, 
+    notifEnabled, setNotifEnabled, simulationMode, setSimulationMode 
+  } = useLive();
   const [pushLogs, setPushLogs] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
@@ -239,7 +242,7 @@ export default function Layout() {
         <header style={{
           height: 56, background: T.panel, borderBottom: `1px solid ${T.border}`,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px', flexShrink: 0,
+          padding: '0 12px', flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -250,6 +253,20 @@ export default function Layout() {
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: T.dim }}>
               Updated: {lastUpdate?.toLocaleTimeString('en-IN')}
             </span>
+
+            <div style={{ width: 1, height: 20, background: T.border, marginLeft: 16 }} />
+            
+            <div className="switch-container" style={{ marginLeft: 16 }}>
+              <span className={`switch-label ${!simulationMode ? 'active' : ''}`}>LIVE</span>
+              <div 
+                className={`toggle-switch ${simulationMode ? 'active' : ''}`}
+                onClick={() => setSimulationMode(!simulationMode)}
+                title={simulationMode ? "Switch to Live Mode" : "Switch to Simulation Mode"}
+              >
+                <div className="toggle-thumb" />
+              </div>
+              <span className={`switch-label ${simulationMode ? 'active' : ''}`}>SIMULATION</span>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -335,9 +352,21 @@ export default function Layout() {
           </div>
         </header>
 
+        {/* Simulation Mode Banner — visible on every page when toggle is ON */}
+        {simulationMode && (
+          <div className="sim-banner" role="status" aria-label="Simulation mode is active">
+            <div className="sim-banner-dot" />
+            <FlaskConical size={13} style={{ flexShrink: 0 }} />
+            <span>Simulation Mode Active — Data is Synthetic</span>
+            <span style={{ opacity: 0.5, fontSize: 10, letterSpacing: 0.5, marginLeft: 4 }}>|</span>
+            <span style={{ fontSize: 10, opacity: 0.7 }}>Toggle off for Live Data</span>
+            <div className="sim-banner-dot" />
+          </div>
+        )}
+
         {/* Page Content */}
         <main style={{
-          flex: 1, overflowY: 'auto', padding: 24,
+          flex: 1, overflowY: 'auto', padding: '4px 8px 12px 8px',
           background: T.bg,
           backgroundImage: 'linear-gradient(rgba(0,229,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.015) 1px, transparent 1px)',
           backgroundSize: '40px 40px',

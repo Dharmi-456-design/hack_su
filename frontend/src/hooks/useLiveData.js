@@ -81,6 +81,7 @@ export function useLiveData() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [notifEnabled, setNotifEnabled] = useState(true);
+  const [simulationMode, setSimulationMode] = useState(true);
 
   // Fetch initial data
   useEffect(() => {
@@ -205,6 +206,7 @@ export function useLiveData() {
     };
 
     const interval = setInterval(() => {
+      if (!simulationMode) return;
       const newAlert = generateRandomAlert();
       setAlerts(prev => [newAlert, ...prev].slice(0, 15)); // Keep last 15 alerts
       
@@ -214,7 +216,7 @@ export function useLiveData() {
     }, 5000); // Every 5 seconds
 
     return () => clearInterval(interval);
-  }, [user, soundEnabled, notifEnabled]);
+  }, [user, soundEnabled, notifEnabled, simulationMode]);
 
   const markAlertRead = useCallback(async (id) => {
     try {
@@ -250,6 +252,8 @@ export function useLiveData() {
     soundEnabled, 
     setSoundEnabled, 
     notifEnabled, 
-    setNotifEnabled 
+    setNotifEnabled,
+    simulationMode,
+    setSimulationMode
   };
 }

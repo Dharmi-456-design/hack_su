@@ -61,12 +61,13 @@
 @layer components {
   /* Modern Card Design */
   .factory-card {
-    @apply bg-factory-card border border-factory-border rounded-xl p-5 relative overflow-hidden transition-all duration-300;
+    @apply bg-factory-card border border-factory-border rounded-xl p-3 relative overflow-hidden transition-all duration-300;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2), 0 0 15px rgba(0, 229, 255, 0.03);
   }
   
   .factory-card:hover {
-    @apply transform -translate-y-[2px] border-factory-accent/30;
+    @apply transform -translate-y-[2px];
+    border-color: color-mix(in srgb, var(--factory-accent) 30%, transparent);
     box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 20px rgba(0, 229, 255, 0.08);
   }
 
@@ -164,18 +165,22 @@
   }
 
   .nav-item.active {
-    @apply text-factory-accent bg-[#00E5FF]/10 font-semibold;
+    @apply text-factory-accent font-semibold;
+    background-color: color-mix(in srgb, var(--factory-accent) 10%, transparent);
   }
 
   /* Badges */
   .badge-operational {
-    @apply text-xs px-2.5 py-1 rounded-full bg-factory-green/10 text-factory-green font-medium;
+    @apply text-xs px-2.5 py-1 rounded-full text-factory-green font-medium;
+    background-color: color-mix(in srgb, var(--factory-green) 10%, transparent);
   }
   .badge-warning {
-    @apply text-xs px-2.5 py-1 rounded-full bg-factory-amber/10 text-factory-amber font-medium;
+    @apply text-xs px-2.5 py-1 rounded-full text-factory-amber font-medium;
+    background-color: color-mix(in srgb, var(--factory-amber) 10%, transparent);
   }
   .badge-critical {
-    @apply text-xs px-2.5 py-1 rounded-full bg-factory-red/10 text-factory-red font-medium;
+    @apply text-xs px-2.5 py-1 rounded-full text-factory-red font-medium;
+    background-color: color-mix(in srgb, var(--factory-red) 10%, transparent);
   }
   .badge-offline {
     @apply text-xs px-2.5 py-1 rounded-full bg-gray-500/10 text-gray-400 font-medium;
@@ -195,7 +200,8 @@
     border-bottom: 1px solid #1E2F46;
   }
   .saas-table td {
-    @apply py-3 px-4 border-b border-factory-border/20;
+    @apply py-3 px-4 border-b;
+    border-color: color-mix(in srgb, var(--factory-border) 20%, transparent);
     color: #E6F1FF;
   }
   .saas-table tr {
@@ -222,11 +228,129 @@
     display: inline-block;
     border: 1px solid rgba(0, 229, 255, 0.2);
   }
+
+  /* Global Toggle Switch */
+  .switch-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+
+  .switch-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--factory-dim);
+    transition: color 0.3s ease;
+  }
+
+  .switch-label.active {
+    color: var(--factory-accent);
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+  }
+
+  /* ── Enhanced 48×24 Toggle (spec-compliant) ── */
+  .toggle-switch {
+    width: 48px;
+    height: 24px;
+    border-radius: 20px;
+    background: #111C2D;
+    border: 1px solid var(--factory-border);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+  }
+
+  .toggle-switch:hover {
+    border-color: rgba(0, 229, 255, 0.4);
+  }
+
+  .toggle-switch.active {
+    background: rgba(0, 229, 255, 0.18);
+    border-color: var(--factory-accent);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.5), 0 0 20px rgba(0, 229, 255, 0.2);
+    animation: toggle-pulse 2s ease-in-out infinite;
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--factory-dim);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+
+  .toggle-switch.active .toggle-thumb {
+    left: 27px;
+    background: var(--factory-accent);
+    box-shadow: 0 0 10px var(--factory-accent), 0 2px 6px rgba(0,0,0,0.4);
+  }
+
+  /* ── Simulation Mode Banner ── */
+  .sim-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px 16px;
+    background: linear-gradient(90deg, rgba(0,229,255,0.04) 0%, rgba(0,229,255,0.09) 50%, rgba(0,229,255,0.04) 100%);
+    border-bottom: 1px solid rgba(0, 229, 255, 0.25);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--factory-accent);
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    animation: sim-banner-shimmer 3s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sim-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,229,255,0.08) 50%, transparent 100%);
+    animation: sim-sweep 2.5s ease-in-out infinite;
+  }
+
+  .sim-banner-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--factory-accent);
+    box-shadow: 0 0 6px var(--factory-accent);
+    animation: pulse-dot 1.2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
 }
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes toggle-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 229, 255, 0.5), 0 0 20px rgba(0, 229, 255, 0.2); }
+  50%       { box-shadow: 0 0 16px rgba(0, 229, 255, 0.7), 0 0 32px rgba(0, 229, 255, 0.3); }
+}
+
+@keyframes sim-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes sim-banner-shimmer {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.8; }
 }
 
 @keyframes pulse {

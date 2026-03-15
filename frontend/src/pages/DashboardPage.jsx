@@ -303,9 +303,7 @@ export default function DashboardPage() {
         <MetricCard title="Safety Score"    value={`${avgSafetyScore}/100`}
           subtitle={`Average across ${WORKERS.length} workers`}
           icon={Shield} color="green" trend={0.5} delay={45} />
-        <MetricCard title="Today's Output"   value={production.today}
-          subtitle={`Target: ${production.target} units`}
-          icon={Factory} color="green" trend={-2.3} delay={90} />
+
         <MetricCard title="Efficiency %"   value={machines.length > 0 ? Math.round(machines.reduce((a,b)=>a+b.efficiency,0)/machines.length) : 0}
           subtitle="Overall Equipment Effectiveness"
           icon={Users} color="amber" trend={1.2} delay={135} />

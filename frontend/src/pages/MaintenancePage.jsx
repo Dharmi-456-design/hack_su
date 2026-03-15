@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { MACHINE_HISTORY } from '../data/dummyData';
@@ -21,22 +21,10 @@ const PRIORITIES = [
 ];
 const statusColors = { Scheduled: '#00E5FF', 'In Progress': '#F59E0B', Completed: '#22C55E', Cancelled: '#EF4444' };
 
-function predictFailure(machine) {
-  let score = 0;
-  const temp = machine.sensors?.temperature ?? machine.temperature ?? 0;
-  const vib  = machine.sensors?.vibration  ?? machine.vibration  ?? 0;
-  const eff  = machine.efficiency ?? 100;
-  if (temp > 95) score += 40; else if (temp > 80) score += 20; else score += 5;
-  if (vib > 2)   score += 30; else if (vib > 1)   score += 15; else score += 2;
-  if (eff < 60)  score += 15; else if (eff < 80)   score += 8;
-  if (machine.status === 'Maintenance') score += 10;
-  return Math.min(100, score);
-}
-
-function getRiskLevel(score) {
-  if (score >= 70) return { label:'HIGH',   color:'text-factory-red',   bg:'bg-factory-red/10',   border:'border-factory-red/40',   badge:'badge-critical' };
-  if (score >= 40) return { label:'MEDIUM', color:'text-factory-amber', bg:'bg-factory-amber/10', border:'border-factory-amber/40', badge:'badge-warning' };
-  return              { label:'LOW',    color:'text-factory-green', bg:'bg-factory-green/10', border:'border-factory-green/30', badge:'badge-operational' };
+function getRiskLevel(days) {
+  if (days <= 7)  return { label:'HIGH',   color:'text-factory-red',   bg:'bg-factory-red/10',   border:'border-factory-red/40',   badge:'badge-critical' };
+  if (days <= 30) return { label:'MEDIUM', color:'text-factory-amber', bg:'bg-factory-amber/10', border:'border-factory-amber/40', badge:'badge-warning' };
+  return           { label:'LOW',    color:'text-factory-green', bg:'bg-factory-green/10', border:'border-factory-green/30', badge:'badge-operational' };
 }
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -76,23 +64,90 @@ export default function MaintenancePage() {
     technician: '', date: '', time: '', type: 'Preventive', cost: '', duration: '', priority: 'Medium', notes: ''
   });
 
-  const { data: machines, loading } = useApi('/machines');
+  const { data: apiMachines, loading } = useApi('/machines');
+  const [liveMachines, setLiveMachines] = useState([]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    let baseMachines = apiMachines || [];
+    if (baseMachines.length === 0) {
+      baseMachines = Array.from({ length: 10 }, (_, i) => ({
+        _id: `M-DEF-${i+1}`,
+        id: `M-DEF-${i+1}`,
+        machineId: `M-DEF-${i+1}`,
+        name: `Industrial Unit ${String.fromCharCode(65 + i)}${i + 1}`,
+        location: `Bay ${String.fromCharCode(65 + (i % 5))}${i + 1}`,
+        temperature: 45 + Math.random() * 50,
+        vibration: 0.2 + Math.random() * 4.3,
+        pressure: 2 + Math.random() * 6,
+        status: 'Running',
+        lastMaintenance: '2026-02-10',
+        predictedFailureDays: Math.floor(Math.random() * 60) + 1,
+      }));
+    } else {
+      baseMachines = baseMachines.map(m => ({
+        ...m,
+        temperature: m.sensors?.temperature ?? m.temperature ?? 45 + Math.random() * 50,
+        vibration: m.sensors?.vibration ?? m.vibration ?? 0.2 + Math.random() * 4.3,
+        pressure: m.pressure ?? 2 + Math.random() * 6,
+        predictedFailureDays: m.predictedFailureDays ?? Math.floor(Math.random() * 60) + 1,
+      }));
+    }
+
+    setLiveMachines(baseMachines);
+
+    const interval = setInterval(() => {
+      setLiveMachines(prev => prev.map(m => {
+        let newTemp = m.temperature + (Math.random() * 6 - 3);
+        if (newTemp < 45) newTemp = 45; if (newTemp > 95) newTemp = 95;
+
+        let newVib = m.vibration + (Math.random() * 0.6 - 0.3);
+        if (newVib < 0.2) newVib = 0.2; if (newVib > 4.5) newVib = 4.5;
+        
+        let newPres = m.pressure + (Math.random() * 1.0 - 0.5);
+        if (newPres < 2) newPres = 2; if (newPres > 8) newPres = 8;
+        
+        let days = m.predictedFailureDays;
+        
+        // dynamically adjust days based on conditions
+        if (newTemp > 85 || newVib > 3.5 || newPres > 7) days -= 1;
+        else if (newTemp < 60 && newVib < 1 && newPres < 5) days += 1;
+        
+        if (days < 1) days = 1;
+
+        return {
+          ...m,
+          temperature: parseFloat(newTemp.toFixed(1)),
+          vibration: parseFloat(newVib.toFixed(2)),
+          pressure: parseFloat(newPres.toFixed(1)),
+          predictedFailureDays: days
+        };
+      }));
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [apiMachines, loading]);
 
   const liveHistory = useLivestreamData(
     MACHINE_HISTORY,
     {
-      temperature: { min: 60, max: 110, variation: 2.5 },
-      vibration: { min: 0.1, max: 3.5, variation: 0.2 }
+      temperature: { min: 45, max: 95, variation: 2.5 },
+      vibration: { min: 0.2, max: 4.5, variation: 0.2 }
     },
     2000,
     20
   );
 
-  const machinesWithRisk = machines.map(m => ({ ...m, riskScore: predictFailure(m) }))
-    .sort((a, b) => b.riskScore - a.riskScore);
+  const machinesWithRisk = liveMachines.map(m => {
+    // Determine risk percentage solely for UI bars based on typical 60 day scale
+    const riskPercentage = Math.max(0, Math.min(100, Math.round(100 - (m.predictedFailureDays / 60) * 100)));
+    return { ...m, riskPercentage };
+  }).sort((a, b) => a.predictedFailureDays - b.predictedFailureDays);
 
-  const highRisk = machinesWithRisk.filter(m => m.riskScore >= 70);
-  const medRisk  = machinesWithRisk.filter(m => m.riskScore >= 40 && m.riskScore < 70);
+  const highRisk = machinesWithRisk.filter(m => m.predictedFailureDays <= 7);
+  const medRisk  = machinesWithRisk.filter(m => m.predictedFailureDays > 7 && m.predictedFailureDays <= 30);
+  const lowRisk  = machinesWithRisk.filter(m => m.predictedFailureDays > 30);
 
   function handleSchedule(e, machine) {
     e.stopPropagation();
@@ -163,26 +218,17 @@ export default function MaintenancePage() {
             <div className="text-xs text-factory-dim mt-1">Schedule within 30 days</div>
           </div>
           <div className="bg-factory-green/5 border border-factory-green/30 rounded-lg p-3 text-center">
-            <div className="font-display text-2xl font-bold text-factory-green">{machinesWithRisk.filter(m => m.riskScore < 40).length}</div>
+            <div className="font-display text-2xl font-bold text-factory-green">{lowRisk.length}</div>
             <div className="font-mono text-xs text-factory-dim mt-1">LOW RISK</div>
             <div className="text-xs text-factory-dim mt-1">Normal operation</div>
           </div>
         </div>
       </div>
 
-      {machines.length === 0 && (
-        <div className="factory-card text-center py-12 text-factory-dim font-mono">
-          No machine data. Add machines in the Admin Panel to see predictions.
-        </div>
-      )}
-
       {/* Risk cards — key fix: position:relative + isolate on the grid, z-index managed per card */}
       <div className="machine-card-container">
         {machinesWithRisk.map((m, i) => {
-          const risk = getRiskLevel(m.riskScore);
-          const temp = m.sensors?.temperature ?? m.temperature ?? 0;
-          const vib  = m.sensors?.vibration  ?? m.vibration  ?? 0;
-          const eff  = m.efficiency ?? 0;
+          const risk = getRiskLevel(m.predictedFailureDays);
           const isSelected = selected?._id === m._id;
           return (
             <div
@@ -195,7 +241,6 @@ export default function MaintenancePage() {
               }}
               onClick={() => setSelected(isSelected ? null : m)}
             >
-              {/* Top shimmer line */}
               <div style={{ position:'absolute', top:0, left:0, right:0, height:1, background:'linear-gradient(90deg,transparent,rgba(0,229,255,0.3),transparent)' }} />
 
               <div className="flex items-start justify-between mb-3">
@@ -204,45 +249,45 @@ export default function MaintenancePage() {
                   <div className="font-mono text-xs text-factory-dim">{m.machineId || m.id} · {m.location}</div>
                 </div>
                 <div className="text-right">
-                  <div className={`font-display text-2xl font-bold ${risk.color}`}>{m.riskScore}%</div>
+                  <div className={`font-display text-2xl font-bold ${risk.color}`}>{m.predictedFailureDays} DAYS</div>
                   <span className={risk.badge}>{risk.label} RISK</span>
                 </div>
               </div>
 
               <div className="mb-3">
                 <div className="flex justify-between text-xs font-mono text-factory-dim mb-1">
-                  <span>Failure Risk Score</span><span>{m.riskScore}%</span>
+                  <span>Predicted Failure In</span><span>{m.predictedFailureDays} Days</span>
                 </div>
                 <div className="h-2 bg-factory-bg rounded overflow-hidden">
                   <div className="h-full rounded transition-all duration-700"
-                    style={{ width:`${m.riskScore}%`, background: m.riskScore >= 70 ? 'linear-gradient(90deg,#EF4444,#FF0055)' : m.riskScore >= 40 ? '#F59E0B' : '#22C55E' }} />
+                    style={{ width:`${m.riskPercentage}%`, background: risk.label === 'HIGH' ? 'linear-gradient(90deg,#EF4444,#FF0055)' : risk.label === 'MEDIUM' ? '#F59E0B' : '#22C55E' }} />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-xs font-mono mb-3">
                 <div className="bg-factory-bg/50 rounded p-2 text-center">
-                  <div className={temp > 90 ? 'text-factory-red font-bold' : 'text-factory-text'}>{temp}°C</div>
+                  <div className={m.temperature > 85 ? 'text-factory-red font-bold' : 'text-factory-text'}>{m.temperature}°C</div>
                   <div className="text-factory-dim">TEMP</div>
                 </div>
                 <div className="bg-factory-bg/50 rounded p-2 text-center">
-                  <div className={vib > 1 ? 'text-factory-amber font-bold' : 'text-factory-text'}>{vib}</div>
+                  <div className={m.vibration > 3.5 ? 'text-factory-red font-bold' : m.vibration > 2.0 ? 'text-factory-amber font-bold' : 'text-factory-text'}>{m.vibration}</div>
                   <div className="text-factory-dim">VIBR</div>
                 </div>
                 <div className="bg-factory-bg/50 rounded p-2 text-center">
-                  <div className={eff < 70 ? 'text-factory-red font-bold' : 'text-factory-text'}>{eff}%</div>
-                  <div className="text-factory-dim">EFF</div>
+                  <div className={m.pressure > 7 ? 'text-factory-amber font-bold' : 'text-factory-text'}>{m.pressure}</div>
+                  <div className="text-factory-dim">PRES</div>
                 </div>
               </div>
 
-              {m.riskScore >= 40 && (
+              {m.predictedFailureDays <= 30 && (
                 <div className="mt-3 pt-3 border-t border-factory-border/50">
                   <div className="flex items-start gap-2">
                     <Brain size={12} className="text-factory-accent mt-0.5 flex-shrink-0" />
                     <div className="text-xs text-factory-dim">
                       <span className="text-factory-accent font-medium">AI Recommendation: </span>
-                      {m.riskScore >= 70
-                        ? `Immediate inspection required. ${temp > 90 ? 'Critical temperature detected. ' : ''}${vib > 1 ? 'Abnormal vibration levels. ' : ''}Check machine ${m.machineId || m.id}.`
-                        : `Schedule maintenance within 30 days. Monitor ${temp > 75 ? 'temperature' : 'vibration'} closely.`}
+                      {m.predictedFailureDays <= 7
+                        ? `Immediate inspection required. ${m.temperature > 85 ? 'Critical temperature detected. ' : ''}${m.vibration > 3.5 ? 'Abnormal vibration levels. ' : ''}Check machine ${m.machineId || m.id}.`
+                        : `Schedule maintenance within 30 days. Monitor ${m.temperature > 75 ? 'temperature' : 'vibration'} closely.`}
                     </div>
                   </div>
                 </div>

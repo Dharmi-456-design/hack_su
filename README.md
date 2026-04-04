@@ -16,7 +16,7 @@
 
 ---
 
-# 🏭 SmartFactory AI — Industrial Management System
+# 🏭 SmartFactory AI — Industrial Management  System
 
 > **Hackathon Project** — AI-Powered Smart Manufacturing Management System with Machine & Workforce Optimization
 
